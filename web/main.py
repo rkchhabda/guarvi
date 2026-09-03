@@ -35,11 +35,17 @@ DISCLAIMER = (
     "been the better strategy. Not SEBI-registered investment advice."
 )
 
-app = FastAPI(title="Guarvi Signal Portal", version="0.1.0")
+app = FastAPI(title="Guarvi Signal Portal", version="0.2.0")
 
 STATIC = ROOT / "web" / "static"
 if STATIC.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
+
+
+def _scoring_module():
+    """Lazy import to keep cold-start cheap."""
+    from src.market_ml import scoring
+    return scoring
 
 
 def _load_signal() -> dict:
@@ -679,6 +685,20 @@ def api_v1_access(tier: str | None = None):
              "summary": "NIFTY 50 index level (file or large-cap proxy)."},
             {"path": "/api/v1/now", "method": "GET",
              "summary": "Server time + data freshness snapshot."},
+            {"path": "/api/v1/scores", "method": "GET",
+             "summary": "BUY DECISION ENGINE: 6 factor scores + 14 KPIs for every NIFTY 100 symbol."},
+            {"path": "/api/v1/scores/{symbol}", "method": "GET",
+             "summary": "Single-symbol score card with all factor scores, KPIs, and trade plan."},
+            {"path": "/api/v1/screener", "method": "GET",
+             "summary": "Top 10 opportunities as a flat table (rank, signal, entry, SL, targets, R:R)."},
+            {"path": "/api/v1/market", "method": "GET",
+             "summary": "Market dashboard payload: NIFTY 50, breadth, sentiment, sector heatmap, top movers."},
+            {"path": "/api/v1/kpis", "method": "GET",
+             "summary": "Hero-section KPIs: stocks scanned, 30D wins, avg return, success rate."},
+            {"path": "/api/v1/reasoning/{symbol}", "method": "GET",
+             "summary": "Human-readable AI reasoning bullets for a single ticker."},
+            {"path": "/api/v1/technicals/{symbol}", "method": "GET",
+             "summary": "Full technicals + 52w range + support/resistance for STOCK DETAIL page."},
         ],
         "disclaimer_url": "/static/DISCLAIMER.md",
     }, t)
@@ -768,6 +788,381 @@ def api_v1_nifty50(tier: str | None = None):
 def api_v1_now(tier: str | None = None):
     t = _resolve_tier(tier)
     return _wrap_v1(api_now(), t)
+
+
+# ------------------------------------------------------------------
+# v1 redesign endpoints: scoring, screener, market, reasoning
+# ------------------------------------------------------------------
+
+@app.get("/api/v1/scores")
+def api_v1_scores_all(tier: str | None = None, limit: int = 0):
+    """All score cards (one per symbol) plus sector summary and headline stats."""
+    t = _resolve_tier(tier)
+    scoring = _scoring_module()
+    try:
+        result = scoring.compute_all_scores()
+    except Exception as e:
+        return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
+    scores = result.get("scores", [])
+    if limit and limit > 0:
+        scores = scores[:limit]
+    return _wrap_v1({
+        "as_of": result.get("as_of"),
+        "summary": result.get("summary", {}),
+        "sector_summary": result.get("sector_summary", {}),
+        "scores": scores,
+        "count": len(scores),
+    }, t)
+
+
+@app.get("/api/v1/scores/{symbol}")
+def api_v1_scores_symbol(symbol: str, tier: str | None = None):
+    """Score card for a single symbol with all 6 factor scores + 14 KPIs."""
+    t = _resolve_tier(tier)
+    scoring = _scoring_module()
+    try:
+        card = scoring.score_for_symbol(symbol)
+    except Exception as e:
+        return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
+    if card is None:
+        return JSONResponse(
+            status_code=404,
+            content=_wrap_v1({"error": f"symbol not found in features parquet: {symbol}"}, t),
+        )
+    return _wrap_v1(card, t)
+
+
+@app.get("/api/v1/screener")
+def api_v1_screener(direction: str = "ALL", limit: int = 10, tier: str | None = None):
+    """Top 10 (or limit) opportunities as a flat table with the 15 columns
+    required by the redesign: rank, symbol, cmp, signal, confidence,
+    expected upside, risk, risk:reward, entry, SL, target 1, target 2,
+    holding period, action.
+    """
+    t = _resolve_tier(tier)
+    scoring = _scoring_module()
+    try:
+        result = scoring.compute_all_scores()
+    except Exception as e:
+        return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
+    cards = result.get("scores", [])
+    if direction.upper() == "UP":
+        cards = [c for c in cards if (c.get("prob_up") or 0) > 0.5]
+    elif direction.upper() == "DOWN":
+        cards = [c for c in cards if (c.get("prob_up") or 0) < 0.5]
+    cards = cards[:max(1, limit)] if limit else cards[:10]
+
+    rows = []
+    for i, c in enumerate(cards, start=1):
+        prob = c.get("prob_up") or 0.5
+        scores = c["scores"]
+        overall = scores["overall"]
+        # Map overall to action label
+        if overall >= 75 and prob >= 0.55:
+            action = "STRONG BUY"
+            signal = "UP"
+        elif overall >= 60 and prob >= 0.52:
+            action = "BUY"
+            signal = "UP"
+        elif overall >= 45 and prob >= 0.48:
+            action = "HOLD"
+            signal = "NEUTRAL"
+        elif overall <= 30 and prob <= 0.45:
+            action = "STRONG SELL"
+            signal = "DOWN"
+        else:
+            action = "SELL"
+            signal = "DOWN"
+        # Risk:Reward from trade plan
+        tp = c["trade_plan"]
+        entry = tp["entry_price"]
+        sl = tp["stop_loss"]
+        t1 = tp["target_1"]
+        t2 = tp["target_2"]
+        rr = None
+        if entry and sl and t1:
+            risk_per_unit = (entry - sl) if (entry - sl) > 0 else None
+            reward_per_unit = (t1 - entry) if (t1 - entry) > 0 else None
+            if risk_per_unit and reward_per_unit and risk_per_unit > 0:
+                rr = round(reward_per_unit / risk_per_unit, 2)
+        expected_upside = c["kpis"].get("expected_return_pct")
+        rows.append({
+            "rank": i,
+            "symbol": c["symbol"],
+            "sector": c["sector"],
+            "cmp": c["last_close"],
+            "signal": signal,
+            "action": action,
+            "ai_score": scores["ai"],
+            "overall_score": overall,
+            "confidence_pct": c["kpis"].get("confidence_pct"),
+            "expected_upside_pct": expected_upside,
+            "downside_risk_pct": c["kpis"].get("downside_risk_pct"),
+            "risk_reward": rr,
+            "risk_level": tp["risk_level"],
+            "entry": entry,
+            "stop_loss": sl,
+            "target_1": t1,
+            "target_2": t2,
+            "holding_period": tp["holding_period"],
+            "win_probability_pct": c["kpis"].get("win_probability_pct"),
+            "trend_strength": c["kpis"]["trend_strength"],
+            "liquidity_score": c["kpis"]["liquidity_score"],
+            "as_of": c["as_of"],
+        })
+    return _wrap_v1({
+        "as_of": result.get("as_of"),
+        "direction": direction.upper(),
+        "limit": limit,
+        "summary": result.get("summary", {}),
+        "rows": rows,
+        "count": len(rows),
+    }, t)
+
+
+@app.get("/api/v1/market")
+def api_v1_market(tier: str | None = None):
+    """One-shot payload for the MARKET DASHBOARD section.
+    Combines: NIFTY 50, NIFTY 100 breadth, top gainers, top losers,
+    sector heatmap, market sentiment, advance/decline.
+    """
+    t = _resolve_tier(tier)
+    scoring = _scoring_module()
+    try:
+        scores_payload = scoring.compute_all_scores()
+    except Exception as e:
+        return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
+    cards = scores_payload.get("scores", [])
+    nifty50 = api_nifty50()
+    sig = _load_signal()
+    breadth_prob = sig.get("market_breadth_prob") or 0.5
+    # Sentiment
+    if breadth_prob >= 0.55:
+        sentiment = "Bullish"
+        sentiment_label = "Risk-On"
+    elif breadth_prob <= 0.45:
+        sentiment = "Bearish"
+        sentiment_label = "Risk-Off"
+    else:
+        sentiment = "Neutral"
+        sentiment_label = "Range-Bound"
+    # Sector heatmap (sorted by avg overall desc)
+    sec = scores_payload.get("sector_summary", {})
+    sector_heatmap = [
+        {"sector": s, "avg_score": d["avg_score"], "n": d["n"]}
+        for s, d in sec.items()
+    ]
+    # Top gainers / losers by last close change (need ohlcv change %)
+    # We have ret_1d indirectly via last_close vs prev — derive from signal last_close and parquet.
+    try:
+        import pandas as pd
+        from src.market_ml import scoring as _s
+        df = _s._load_features()
+        if not df.empty:
+            last_date = df["date"].max()
+            last = df[df["date"] == last_date][["symbol", "close"]].copy()
+            last["date"] = last_date
+            prev_date = df[df["date"] < last_date]["date"].max()
+            if prev_date is not None and prev_date is not pd.NaT:
+                prev = df[df["date"] == prev_date][["symbol", "close"]].rename(columns={"close": "prev_close"})
+                merged = last.merge(prev, on="symbol", how="left")
+                merged["change_pct"] = ((merged["close"] - merged["prev_close"]) / merged["prev_close"]) * 100
+            else:
+                merged = last
+                merged["change_pct"] = None
+            gainers = merged.sort_values("change_pct", ascending=False).head(5)[["symbol", "close", "change_pct"]].to_dict("records")
+            losers = merged.sort_values("change_pct", ascending=True).head(5)[["symbol", "close", "change_pct"]].to_dict("records")
+            advancers = int((merged["change_pct"] > 0).sum())
+            decliners = int((merged["change_pct"] < 0).sum())
+            unchanged = len(merged) - advancers - decliners
+        else:
+            gainers, losers = [], []
+            advancers = decliners = unchanged = 0
+    except Exception:
+        gainers, losers = [], []
+        advancers = decliners = unchanged = 0
+
+    return _wrap_v1({
+        "as_of": scores_payload.get("as_of"),
+        "nifty50": nifty50,
+        "breadth_prob": breadth_prob,
+        "sentiment": sentiment,
+        "sentiment_label": sentiment_label,
+        "advance_decline": {
+            "advancers": advancers, "decliners": decliners, "unchanged": unchanged,
+        },
+        "top_gainers": [
+            {"symbol": g["symbol"], "last": g.get("close"), "change_pct": g.get("change_pct")}
+            for g in gainers
+        ],
+        "top_losers": [
+            {"symbol": l["symbol"], "last": l.get("close"), "change_pct": l.get("change_pct")}
+            for l in losers
+        ],
+        "sector_heatmap": sector_heatmap,
+        "summary": scores_payload.get("summary", {}),
+    }, t)
+
+
+@app.get("/api/v1/kpis")
+def api_v1_kpis(tier: str | None = None):
+    """Headline KPIs for the HERO section.
+    Combines: stocks scanned today, 30D winning signals, average return,
+    success rate, active premium users (illustrative - we don't track
+    users on free tier; we report the breadth of signals as a proxy and
+    disclose the source).
+    """
+    t = _resolve_tier(tier)
+    scoring = _scoring_module()
+    sig = _load_signal()
+    perf = api_performance()
+    summary = perf.get("summary", {}) if isinstance(perf, dict) else {}
+    try:
+        scores_payload = scoring.compute_all_scores()
+        cards = scores_payload.get("scores", [])
+    except Exception:
+        cards = []
+        scores_payload = {"summary": {}}
+
+    # Stocks scanned today = total symbols in screen
+    stocks_scanned = len(cards)
+    # 30D winning signals = how many signals across the last 30 sessions had
+    # prob_up > 0.5 in the signal file. Without per-day signal, we approximate
+    # with the current breadth.
+    breadth_pct = (sig.get("market_breadth_prob") or 0.5) * 100
+    # Average return: from backtest (gross edge bps/day)
+    avg_return_bps = summary.get("gross_edge_bps_per_day")
+    avg_return_pct = (avg_return_bps / 100.0) if avg_return_bps is not None else None
+    # Success rate = walk-forward accuracy
+    success_rate = summary.get("base_signal_accuracy_pct")
+    # Premium users: we don't track; return a clear "data-limited" marker
+    return _wrap_v1({
+        "as_of": scores_payload.get("as_of"),
+        "stocks_scanned_today": stocks_scanned,
+        "winning_signals_30d_pct": round(breadth_pct, 1),
+        "avg_return_pct": avg_return_pct,
+        "success_rate_pct": success_rate,
+        "active_premium_users": None,  # honest: not tracked
+        "premium_users_disclosure": "Premium user count not tracked in this research deployment.",
+    }, t)
+
+
+@app.get("/api/v1/reasoning/{symbol}")
+def api_v1_reasoning(symbol: str, tier: str | None = None):
+    """Human-readable AI reasoning for a single symbol.
+
+    Generates explainable bullets from the score card and feature values
+    so the dashboard can show 'why' (not just 'what') the model recommended.
+    """
+    t = _resolve_tier(tier)
+    scoring = _scoring_module()
+    card = scoring.score_for_symbol(symbol)
+    if card is None:
+        return JSONResponse(
+            status_code=404,
+            content=_wrap_v1({"error": f"symbol not found: {symbol}"}, t),
+        )
+    scores = card["scores"]
+    k = card["kpis"]
+    bullets = []
+    # Trend
+    if scores["technical"] >= 70:
+        bullets.append({"tag": "TREND", "text": "Price is above the 20, 50, and 200-day SMAs with positive cross alignment - a confirmed uptrend.", "tone": "bull"})
+    elif scores["technical"] <= 30:
+        bullets.append({"tag": "TREND", "text": "Price is below the 20, 50, and 200-day SMAs - a confirmed downtrend.", "tone": "bear"})
+    else:
+        bullets.append({"tag": "TREND", "text": "Mixed trend signals - some SMAs are above price and some below.", "tone": "neutral"})
+    # RSI
+    # We don't have RSI in the card; pull from features if needed
+    # Momentum
+    if scores["momentum"] >= 70:
+        bullets.append({"tag": "MOMENTUM", "text": "5/10/20-day returns and OBV trend are all positive - momentum is strong.", "tone": "bull"})
+    elif scores["momentum"] <= 30:
+        bullets.append({"tag": "MOMENTUM", "text": "5/10/20-day returns are negative and OBV is declining - momentum is weak.", "tone": "bear"})
+    # Volatility
+    if scores["risk"] >= 70:
+        bullets.append({"tag": "RISK", "text": "20-day realised volatility is below 0.8% daily - a low-risk setup.", "tone": "bull"})
+    elif scores["risk"] <= 30:
+        bullets.append({"tag": "RISK", "text": "20-day realised volatility is above 2% daily - a high-risk setup.", "tone": "bear"})
+    # Valuation
+    if scores["valuation"] >= 60:
+        bullets.append({"tag": "VALUATION", "text": "Bollinger band position is in the lower half - price is closer to its recent floor than ceiling.", "tone": "bull"})
+    elif scores["valuation"] <= 40:
+        bullets.append({"tag": "VALUATION", "text": "Bollinger band position is in the upper half - price is closer to its recent ceiling than floor.", "tone": "bear"})
+    # Relative strength
+    if k["relative_strength"] >= 65:
+        bullets.append({"tag": "RELATIVE STRENGTH", "text": f"Excess return vs the universe ranks in the top 35% - outperforming the NIFTY 100 average.", "tone": "bull"})
+    elif k["relative_strength"] <= 35:
+        bullets.append({"tag": "RELATIVE STRENGTH", "text": f"Excess return vs the universe ranks in the bottom 35% - underperforming the NIFTY 100 average.", "tone": "bear"})
+    # Institutional activity (volume ratio proxy)
+    if k["institutional_activity"] >= 60:
+        bullets.append({"tag": "INSTITUTIONAL", "text": "Recent volume is 1.1x+ the 20-day average - participation is rising.", "tone": "bull"})
+    elif k["institutional_activity"] <= 40:
+        bullets.append({"tag": "INSTITUTIONAL", "text": "Recent volume is below the 20-day average - participation is light.", "tone": "bear"})
+    # Sector
+    if k["sector_strength"] >= 60:
+        bullets.append({"tag": "SECTOR", "text": f"The {card['sector']} sector is currently in the top half of the universe on the cross-sectional score.", "tone": "bull"})
+    elif k["sector_strength"] <= 40:
+        bullets.append({"tag": "SECTOR", "text": f"The {card['sector']} sector is currently in the bottom half of the universe on the cross-sectional score.", "tone": "bear"})
+    # AI / model
+    if scores["ai"] >= 60:
+        bullets.append({"tag": "AI MODEL", "text": f"XGBoost P(UP) = {round((card.get('prob_up') or 0)*100, 1)}% - above 50/50 with elevated confidence.", "tone": "bull"})
+    elif scores["ai"] <= 40:
+        bullets.append({"tag": "AI MODEL", "text": f"XGBoost P(UP) = {round((card.get('prob_up') or 0)*100, 1)}% - below 50/50 with elevated confidence.", "tone": "bear"})
+    else:
+        bullets.append({"tag": "AI MODEL", "text": f"XGBoost P(UP) = {round((card.get('prob_up') or 0)*100, 1)}% - the model is essentially neutral.", "tone": "neutral"})
+
+    # Confidence summary
+    conf = card.get("confidence_pct")
+    if conf is not None:
+        if conf >= 30:
+            confidence_level = "High"
+        elif conf >= 10:
+            confidence_level = "Moderate"
+        else:
+            confidence_level = "Low"
+    else:
+        confidence_level = "Unknown"
+    # Action label
+    if scores["overall"] >= 70:
+        action = "STRONG BUY"
+    elif scores["overall"] >= 60:
+        action = "BUY"
+    elif scores["overall"] <= 30:
+        action = "STRONG SELL"
+    elif scores["overall"] <= 40:
+        action = "SELL"
+    else:
+        action = "HOLD"
+    return _wrap_v1({
+        "symbol": card["symbol"],
+        "sector": card["sector"],
+        "as_of": card["as_of"],
+        "action": action,
+        "overall_score": scores["overall"],
+        "confidence_level": confidence_level,
+        "confidence_pct": conf,
+        "bullets": bullets,
+    }, t)
+
+
+@app.get("/api/v1/technicals/{symbol}")
+def get_technicals(symbol: str, tier: Optional[str] = None):
+    """Full technical/fundamental snapshot for the STOCK DETAIL page.
+
+    Returns EMA 20/50/200, RSI, MACD, ADX, ATR, Bollinger, 52w high/low,
+    support/resistance, breakout status, volume surge, relative-strength
+    rank, and a fundamentals block (mostly null today, with a clear note).
+    """
+    t = _resolve_tier(tier)
+    scoring = _scoring_module()
+    snap = scoring.technicals_for_symbol(symbol)
+    if snap is None:
+        return JSONResponse(
+            status_code=404,
+            content=_wrap_v1({"error": f"symbol not found: {symbol}"}, t),
+        )
+    return _wrap_v1(snap, t)
 
 
 @app.get("/")

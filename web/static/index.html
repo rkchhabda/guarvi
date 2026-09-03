@@ -1,1003 +1,931 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Guarvi · NIFTY 100 Directional Signal</title>
-<style>
-  :root {
-    --bg: #0b0f17;
-    --bg-2: #0f1521;
-    --card: #131a28;
-    --card-2: #182132;
-    --ink: #e7ecf3;
-    --ink-2: #c9d1dc;
-    --mut: #8a93a4;
-    --up: #22c55e;
-    --up-2: #16a34a;
-    --down: #ef4444;
-    --down-2: #b91c1c;
-    --acc: #3b82f6;
-    --acc-2: #1d4ed8;
-    --gold: #f59e0b;
-    --bd: #1f2a3d;
-    --bd-2: #2a3a55;
-    --shadow-soft: 0 1px 0 rgba(255,255,255,.04) inset, 0 4px 16px rgba(0,0,0,.25);
-  }
-  * { box-sizing: border-box; }
-  html, body { background: var(--bg); color: var(--ink); }
-
-  /* ---------- Stale-data banner ---------- */
-  .stale-banner {
-    display: flex; align-items: center; gap: 12px;
-    margin: 14px 24px 0;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: linear-gradient(90deg, rgba(245,158,11,.18), rgba(245,158,11,.06));
-    border: 1px solid rgba(245,158,11,.55);
-    color: #fde68a;
-    font-size: 13.5px;
-    box-shadow: 0 0 0 1px rgba(245,158,11,.15) inset, 0 2px 8px rgba(0,0,0,.25);
-  }
-  .stale-banner .sb-icon {
-    display:inline-flex; align-items:center; justify-content:center;
-    width: 22px; height: 22px; border-radius: 50%;
-    background: rgba(245,158,11,.25); color: #fbbf24; font-size: 14px;
-  }
-  .stale-banner .sb-text { flex: 1; line-height: 1.4; }
-  .stale-banner .sb-text b { color: #fcd34d; }
-  .stale-banner .sb-close {
-    background: transparent; border: 0; color: #fde68a;
-    cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 6px;
-  }
-  .stale-banner .sb-close:hover { background: rgba(245,158,11,.15); }
-  .stale-banner.hidden { display: none; }
-  body {
-    margin: 0;
-    font: 14.5px/1.5 -apple-system, Segoe UI, Inter, Roboto, Helvetica, Arial, sans-serif;
-    background:
-      radial-gradient(1200px 600px at 10% -10%, #1a2540 0%, transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, #0e1a2e 0%, transparent 55%),
-      var(--bg);
-    color: var(--ink);
-  }
-
-  /* ---------- Top bar ---------- */
-  .topbar {
-    position: sticky; top: 0; z-index: 20;
-    display: flex; align-items: center; gap: 18px;
-    padding: 12px 24px;
-    background: rgba(11, 15, 23, 0.78);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--bd);
-  }
-  .brand { display:flex; align-items:center; gap:10px; }
-  .logo {
-    width: 30px; height: 30px; border-radius: 8px;
-    background: linear-gradient(135deg, #3b82f6, #22c55e);
-    display: grid; place-items: center; font-weight: 800; color: #0b0f17;
-    font-size: 16px; box-shadow: var(--shadow-soft);
-  }
-  .brand h1 { margin: 0; font-size: 18px; letter-spacing: .2px; }
-  .brand .sub { color: var(--mut); font-size: 12.5px; }
-  .spacer { flex: 1; }
-  .live-time { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
-  .live-time .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-                    background: var(--down); margin-right: 6px; box-shadow: 0 0 8px var(--down); }
-  .live-time .dot.on { background: var(--up); box-shadow: 0 0 8px var(--up); animation: pulse 1.6s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-  .nifty-pill {
-    display: inline-flex; align-items: baseline; gap: 8px;
-    padding: 6px 12px; border: 1px solid var(--bd-2); border-radius: 10px;
-    background: var(--card-2);
-    font-variant-numeric: tabular-nums;
-  }
-  .nifty-pill .label { color: var(--mut); font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; }
-  .nifty-pill .val { font-size: 18px; font-weight: 700; }
-  .nifty-pill .chg { font-size: 12.5px; }
-  .nifty-pill.up   .chg { color: var(--up); }
-  .nifty-pill.down .chg { color: var(--down); }
-
-  /* ---------- Disclaimer ---------- */
-  .disc {
-    background: linear-gradient(90deg, #3a2a06 0%, #2a1f04 100%);
-    color: #f8d680; padding: 9px 24px; font-size: 12.5px;
-    border-bottom: 1px solid #5c4300;
-  }
-  .disc b { color: #fde2a3; }
-
-  main { max-width: 1200px; margin: 0 auto; padding: 22px; }
-
-  /* ---------- KPI cards ---------- */
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
-  .kpi {
-    background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
-    border: 1px solid var(--bd); border-radius: 14px;
-    padding: 14px 16px; box-shadow: var(--shadow-soft);
-    position: relative; overflow: hidden;
-  }
-  .kpi .klabel { color: var(--mut); font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; }
-  .kpi .kval { font-size: 30px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .kpi .kdelta { font-size: 12px; color: var(--mut); margin-top: 2px; }
-  .kpi .kdelta.good { color: var(--up); }
-  .kpi .kdelta.bad  { color: var(--down); }
-  .kpi .kbar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
-               background: linear-gradient(90deg, var(--acc), transparent); }
-  .kpi.signal .kval.up   { color: var(--up); }
-  .kpi.signal .kval.down { color: var(--down); }
-  .kpi.signal .kval.flat { color: var(--gold); }
-  .kpi .badge { display: inline-block; padding: 2px 8px; border-radius: 999px;
-                font-size: 11px; font-weight: 700; letter-spacing: .5px; }
-  .kpi .badge.up   { background: rgba(34,197,94,.12); color: var(--up); border: 1px solid rgba(34,197,94,.35); }
-  .kpi .badge.down { background: rgba(239,68,68,.12); color: var(--down); border: 1px solid rgba(239,68,68,.35); }
-  .kpi .badge.flat { background: rgba(245,158,11,.12); color: var(--gold); border: 1px solid rgba(245,158,11,.35); }
-
-  /* ---------- Section ---------- */
-  .section { margin-top: 18px; background: var(--card);
-             border: 1px solid var(--bd); border-radius: 14px; padding: 16px;
-             box-shadow: var(--shadow-soft); }
-  .section h2 { margin: 0 0 12px; font-size: 14px; color: var(--ink-2);
-                text-transform: uppercase; letter-spacing: 1.5px; }
-  .section h2 .pill { float: right; font-size: 11.5px; }
-
-  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px;
-          background: #1c2538; border: 1px solid var(--bd-2); color: var(--ink-2); }
-  .pill.up   { color: var(--up);  border-color: rgba(34,197,94,.35);  background: rgba(34,197,94,.08); }
-  .pill.down { color: var(--down);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.08); }
-  .pill.flat { color: var(--gold);border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.08); }
-
-  /* ---------- Screener layout ---------- */
-  .screener-head {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
-  }
-  .search { position: relative; flex: 1; min-width: 220px; }
-  .search input {
-    width: 100%; padding: 10px 12px 10px 36px;
-    background: var(--bg-2); border: 1px solid var(--bd-2); color: var(--ink);
-    border-radius: 10px; font-size: 14px; outline: none;
-    transition: border-color .15s, box-shadow .15s;
-  }
-  .search input::placeholder { color: var(--mut); }
-  .search input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
-  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
-                width: 16px; height: 16px; color: var(--mut); }
-  .filter { display: flex; gap: 6px; }
-  .filter button {
-    background: var(--bg-2); color: var(--ink-2); border: 1px solid var(--bd-2);
-    border-radius: 8px; padding: 9px 12px; cursor: pointer; font-size: 13px;
-    transition: all .15s;
-  }
-  .filter button:hover { border-color: var(--acc); color: var(--ink); }
-  .filter button.active { background: var(--acc); color: #fff; border-color: var(--acc); }
-  .count { color: var(--mut); font-size: 12.5px; }
-
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
-  .subcard { background: var(--bg-2); border: 1px solid var(--bd); border-radius: 12px;
-             padding: 12px; }
-  .subcard h3 { margin: 0 0 8px; font-size: 12.5px; color: var(--mut);
-                text-transform: uppercase; letter-spacing: 1px; }
-  .subcard.top h3 { color: var(--up); }
-  .subcard.bot h3 { color: var(--down); }
-
-  /* ---------- Table ---------- */
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--bd); }
-  th { color: var(--mut); font-weight: 600; font-size: 11.5px;
-       text-transform: uppercase; letter-spacing: .8px; }
-  tbody tr { transition: background .12s; }
-  tbody tr:hover { background: rgba(59,130,246,.06); }
-  td.sym { font-weight: 600; letter-spacing: .3px; }
-  td.num { font-variant-numeric: tabular-nums; }
-  td.up   { color: var(--up); }
-  td.down { color: var(--down); }
-  td.muted { color: var(--mut); }
-  .bar { height: 6px; background: #1c2538; border-radius: 4px; overflow: hidden; min-width: 70px; }
-  .bar > span { display: block; height: 100%; }
-  .bar > span.up   { background: linear-gradient(90deg, var(--up-2), var(--up)); }
-  .bar > span.down { background: linear-gradient(90deg, var(--down-2), var(--down)); }
-
-  /* ---------- Live quotes ---------- */
-  .quote-bar {
-    display: flex; gap: 12px; align-items: center; padding: 10px 12px;
-    background: var(--bg-2); border-radius: 10px; border: 1px solid var(--bd);
-    color: var(--mut); font-size: 13px; margin-bottom: 10px;
-  }
-  .quote-bar.ok   { color: var(--up); border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.06); }
-  .quote-bar.idle { color: var(--mut); }
-
-  /* ---------- Footer ---------- */
-  .foot { color: var(--mut); font-size: 12px; text-align: center; padding: 22px 0 8px; }
-  code { background: #1c2538; padding: 1px 6px; border-radius: 4px; }
-  .skel { color: var(--mut); }
-
-  /* ---------- NIFTY 50 hero strip ---------- */
-  .index-hero {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 14px 24px; margin: 0 auto; max-width: 1200px;
-    border-bottom: 1px solid var(--bd);
-  }
-  .index-hero .name { color: var(--mut); font-size: 12px;
-                      text-transform: uppercase; letter-spacing: 1.5px; }
-  .index-hero .big  { font-size: 36px; font-weight: 800;
-                      font-variant-numeric: tabular-nums; line-height: 1; }
-  .index-hero .src  { color: var(--mut); font-size: 12px; }
-  .pct-badge {
-    display: inline-block; padding: 5px 12px; border-radius: 999px;
-    font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
-    border: 1px solid;
-  }
-  .pct-badge.up   { color: var(--up);  background: rgba(34,197,94,.10);
-                    border-color: rgba(34,197,94,.40); }
-  .pct-badge.down { color: var(--down);background: rgba(239,68,68,.10);
-                    border-color: rgba(239,68,68,.40); }
-  .pct-badge.flat { color: var(--gold);background: rgba(245,158,11,.10);
-                    border-color: rgba(245,158,11,.40); }
-
-  /* ---------- KPI glow ---------- */
-  .kpi { box-shadow: var(--shadow-soft), 0 0 0 1px rgba(59,130,246,.04),
-                       0 0 24px rgba(59,130,246,.06); }
-  .kpi:hover { box-shadow: var(--shadow-soft), 0 0 0 1px rgba(59,130,246,.10),
-                                  0 0 28px rgba(59,130,246,.14); }
-
-  /* ---------- Symbol picker ---------- */
-  .picker-row {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-  .picker-row label { color: var(--mut); font-size: 12.5px;
-                      text-transform: uppercase; letter-spacing: 1px; }
-  .picker-row select {
-    flex: 1; min-width: 220px;
-    background: var(--bg-2); color: var(--ink);
-    border: 1px solid var(--bd-2); border-radius: 10px;
-    padding: 9px 12px; font-size: 14px; outline: none;
-    font-family: inherit;
-  }
-  .picker-row select:focus { border-color: var(--acc);
-                              box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
-  .picker-row .clear-btn {
-    background: var(--bg-2); color: var(--ink-2);
-    border: 1px solid var(--bd-2); border-radius: 8px;
-    padding: 8px 12px; cursor: pointer; font-size: 13px;
-  }
-  .picker-row .clear-btn:hover { border-color: var(--down); color: var(--down); }
-
-  /* ---------- Selected row highlight (Top5 / Bot5) ---------- */
-  tbody tr { cursor: pointer; }
-  tbody tr.selected {
-    background: rgba(245,158,11,.12) !important;
-    box-shadow: inset 3px 0 0 var(--gold);
-  }
-  tbody tr.selected td { font-weight: 600; }
-
-  /* ---------- Deep dive ---------- */
-  .deepdive {
-    margin-top: 16px;
-    background: linear-gradient(180deg, var(--card) 0%, #0f1a2d 100%);
-    border: 1px solid var(--acc);
-    border-radius: 14px;
-    padding: 18px 20px;
-    box-shadow: 0 0 0 1px rgba(59,130,246,.10), 0 0 32px rgba(59,130,246,.18);
-    display: none;
-  }
-  .deepdive.open { display: block; }
-  .deepdive h2 { margin: 0 0 4px; font-size: 14px; color: var(--ink-2);
-                 text-transform: uppercase; letter-spacing: 1.5px; }
-  .deepdive .sym-big {
-    font-size: 30px; font-weight: 800; letter-spacing: .5px;
-    color: var(--ink);
-  }
-  .deepdive .asof { color: var(--mut); font-size: 12px; margin-left: 8px; }
-  .deepdive-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-    margin-top: 14px;
-  }
-  @media (max-width: 900px) { .deepdive-grid { grid-template-columns: repeat(2, 1fr); } }
-  .dd-card {
-    background: var(--bg-2); border: 1px solid var(--bd);
-    border-radius: 10px; padding: 10px 12px;
-  }
-  .dd-card .lbl { color: var(--mut); font-size: 11px;
-                  text-transform: uppercase; letter-spacing: 1px; }
-  .dd-card .val { font-size: 18px; font-weight: 700;
-                  font-variant-numeric: tabular-nums; margin-top: 2px; }
-  .dd-card .val.up   { color: var(--up); }
-  .dd-card .val.down { color: var(--down); }
-  .dd-card .sub { color: var(--mut); font-size: 11.5px; margin-top: 1px; }
-  .dd-bar { height: 8px; background: #1c2538; border-radius: 5px;
-            overflow: hidden; margin-top: 6px; }
-  .dd-bar > span { display: block; height: 100%; }
-  .dd-bar > span.up   { background: linear-gradient(90deg, var(--up-2), var(--up)); }
-  .dd-bar > span.down { background: linear-gradient(90deg, var(--down-2), var(--down)); }
-  .dd-spark {
-    grid-column: 1 / -1; background: var(--bg-2); border: 1px solid var(--bd);
-    border-radius: 10px; padding: 10px 12px;
-  }
-  .dd-spark .lbl { color: var(--mut); font-size: 11px;
-                   text-transform: uppercase; letter-spacing: 1px; }
-  .dd-spark svg { display: block; width: 100%; height: 70px; margin-top: 6px; }
-  .dd-foot { color: var(--mut); font-size: 12px; margin-top: 10px; }
-  .dd-loading { color: var(--mut); font-size: 13px; padding: 8px 0; }
-  .dd-error   { color: var(--down); font-size: 13px; padding: 8px 0; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Guarvi — AI-Powered Stock Selection for Smarter Investing</title>
+  <meta name="description" content="Daily ranked opportunities from NIFTY 100 with confidence scores, risk analysis, technical strength, and AI-generated buy/sell recommendations." />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" />
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <div class="logo">G</div>
-    <div>
-      <h1>Guarvi</h1>
-      <div class="sub">NIFTY 100 next-day directional signal &middot; research dashboard</div>
+<!-- ==================== TOP BAR ==================== -->
+<header class="g-topbar">
+  <div class="g-topbar__inner">
+    <div class="g-brand">
+      <span class="g-brand__mark">G</span>
+      <span class="g-brand__name">Guarvi</span>
+      <span class="g-brand__tag">NIFTY 100 Signal Intelligence</span>
+    </div>
+    <div class="g-topbar__meta">
+      <span class="g-topbar__live" id="liveDot" title="Live data feed">
+        <span class="g-dot"></span><span id="liveLabel">Live</span>
+      </span>
+      <span class="g-topbar__time" id="serverTime">--</span>
+      <span class="g-topbar__asof">As of <strong id="asOf">--</strong></span>
     </div>
   </div>
-  <div class="spacer"></div>
-  <div class="nifty-pill" id="niftyPill" title="NIFTY 50 reference value">
-    <span class="label">NIFTY 50</span>
-    <span class="val" id="niftyVal">--</span>
-    <span class="chg" id="niftyChg">--</span>
-  </div>
-  <div class="live-time"><span class="dot" id="liveDot"></span><span id="liveClock">--</span></div>
 </header>
 
-<div class="disc" id="disc">Loading disclaimer&hellip;</div>
+<!-- ==================== STALE BANNER ==================== -->
+<div id="staleBanner" class="g-banner g-banner--warn hidden"></div>
 
-<div class="index-hero" id="indexHero" title="NIFTY 50 reference value">
-  <div>
-    <div class="name">NIFTY 50</div>
-    <div class="src" id="indexSrc">loading&hellip;</div>
+<!-- ==================== HERO ==================== -->
+<section class="g-hero">
+  <div class="g-hero__bg"></div>
+  <div class="g-hero__inner">
+    <div class="g-hero__copy">
+      <span class="g-pill">NIFTY 100 · DAILY · AI-RANKED</span>
+      <h1 class="g-hero__title">
+        AI-Powered Stock Selection
+        <span class="g-grad">for Smarter Investing</span>
+      </h1>
+      <p class="g-hero__sub">
+        Daily ranked opportunities from NIFTY 100 with confidence scores,
+        risk analysis, technical strength, and explainable AI buy/sell recommendations.
+      </p>
+      <div class="g-hero__cta">
+        <a class="g-btn g-btn--gold" href="#top-picks">View Today's Top Picks</a>
+        <a class="g-btn g-btn--ghost" href="#methodology">Methodology</a>
+        <a class="g-btn g-btn--primary" href="#premium">Upgrade to Premium</a>
+      </div>
+    </div>
+    <div class="g-hero__kpis" id="heroKpis">
+      <div class="g-kpi"><div class="g-kpi__label">Stocks Scanned Today</div><div class="g-kpi__value" id="kpiScanned">--</div></div>
+      <div class="g-kpi"><div class="g-kpi__label">30D Breadth</div><div class="g-kpi__value" id="kpiBreadth">--</div><div class="g-kpi__sub" id="kpiBreadthSub">--</div></div>
+      <div class="g-kpi"><div class="g-kpi__label">Avg Return (backtest)</div><div class="g-kpi__value" id="kpiAvg">--</div><div class="g-kpi__sub" id="kpiAvgSub">--</div></div>
+      <div class="g-kpi"><div class="g-kpi__label">Success Rate</div><div class="g-kpi__value" id="kpiSuccess">--</div><div class="g-kpi__sub" id="kpiSuccessSub">walk-forward</div></div>
+      <div class="g-kpi g-kpi--muted"><div class="g-kpi__label">Premium Users</div><div class="g-kpi__value" id="kpiPremium">--</div><div class="g-kpi__sub">not tracked in research deployment</div></div>
+    </div>
   </div>
-  <div class="big" id="indexVal">&mdash;</div>
-  <span class="pct-badge flat" id="indexPct">--</span>
-  <div style="flex:1"></div>
-  <div class="src">last 30 sessions &middot; source: parquet / live</div>
+</section>
+
+<!-- ==================== MARKET DASHBOARD ==================== -->
+<section class="g-section" id="market">
+  <div class="g-section__head">
+    <h2>Market Dashboard</h2>
+    <p>Live snapshot of NIFTY 50, breadth, sentiment, sector heatmap and top movers.</p>
+  </div>
+
+  <div class="g-grid g-grid--4" id="marketCards">
+    <div class="g-card">
+      <div class="g-card__head"><span class="g-card__title">NIFTY 50</span><span class="g-badge" id="niftyBadge">--</span></div>
+      <div class="g-card__big" id="niftyValue">--</div>
+      <div class="g-card__sub" id="niftyChange">--</div>
+      <div class="g-card__foot" id="niftySource">--</div>
+    </div>
+    <div class="g-card">
+      <div class="g-card__head"><span class="g-card__title">Market Breadth</span><span class="g-badge" id="breadthBadge">--</span></div>
+      <div class="g-card__big" id="breadthValue">--</div>
+      <div class="g-bar"><div class="g-bar__fill" id="breadthBar" style="width:0%"></div></div>
+      <div class="g-card__sub"><span id="advancers">--</span> advancing · <span id="decliners">--</span> declining</div>
+    </div>
+    <div class="g-card">
+      <div class="g-card__head"><span class="g-card__title">Sentiment</span><span class="g-badge" id="sentBadge">--</span></div>
+      <div class="g-gauge" id="sentGauge">
+        <div class="g-gauge__dial"></div>
+        <div class="g-gauge__needle" id="sentNeedle"></div>
+        <div class="g-gauge__center" id="sentLabel">--</div>
+      </div>
+      <div class="g-card__sub" id="sentSub">--</div>
+    </div>
+    <div class="g-card">
+      <div class="g-card__head"><span class="g-card__title">Top Movers</span><span class="g-badge g-badge--bull">Gainers</span></div>
+      <ol class="g-movers" id="topGainers"></ol>
+      <div class="g-divider"></div>
+      <div class="g-card__head"><span class="g-card__title"></span><span class="g-badge g-badge--bear">Losers</span></div>
+      <ol class="g-movers g-movers--bear" id="topLosers"></ol>
+    </div>
+  </div>
+
+  <div class="g-card g-card--pad">
+    <div class="g-card__head">
+      <span class="g-card__title">Sector Heatmap</span>
+      <span class="g-card__sub">27 sectors · average overall score</span>
+    </div>
+    <div class="g-heatmap" id="sectorHeatmap"></div>
+  </div>
+</section>
+
+<!-- ==================== TOP 10 OPPORTUNITIES ==================== -->
+<section class="g-section" id="top-picks">
+  <div class="g-section__head">
+    <h2>Today's Best Opportunities</h2>
+    <p>Top 10 stocks ranked by our BUY DECISION ENGINE — overall score blended from AI, technical, fundamental, momentum, risk, and valuation.</p>
+  </div>
+
+  <div class="g-tabs" id="screenerTabs">
+    <button class="g-tab g-tab--active" data-dir="ALL">All</button>
+    <button class="g-tab" data-dir="UP">Bullish only</button>
+    <button class="g-tab" data-dir="DOWN">Bearish only</button>
+  </div>
+
+  <div class="g-card g-card--pad g-card--flush">
+    <div class="g-table-wrap">
+      <table class="g-table" id="screenerTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Stock</th>
+            <th>Sector</th>
+            <th class="num">CMP</th>
+            <th>Signal</th>
+            <th>Action</th>
+            <th class="num">AI</th>
+            <th class="num">Score</th>
+            <th class="num">Conf</th>
+            <th class="num">Upside</th>
+            <th class="num">Risk</th>
+            <th class="num">R:R</th>
+            <th class="num">Entry</th>
+            <th class="num">SL</th>
+            <th class="num">T1</th>
+            <th class="num">T2</th>
+            <th>Holding</th>
+          </tr>
+        </thead>
+        <tbody id="screenerBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== BUY DECISION ENGINE ==================== -->
+<section class="g-section" id="engine">
+  <div class="g-section__head">
+    <h2>BUY DECISION ENGINE</h2>
+    <p>Pick any symbol to see the full 20-KPI scorecard. Click "Show reasoning" to see the explainable AI breakdown.</p>
+  </div>
+
+  <div class="g-card g-card--pad g-card--accent">
+    <div class="g-row">
+      <label class="g-label">Symbol</label>
+      <input id="symbolPicker" class="g-input" list="symbolList" placeholder="Type to search — e.g. RELIANCE, INFY, TCS" autocomplete="off" />
+      <datalist id="symbolList"></datalist>
+      <button class="g-btn g-btn--primary" id="loadSymbol">Load</button>
+      <button class="g-btn g-btn--ghost" id="loadReasoning">Show reasoning</button>
+    </div>
+
+    <div id="engineCard" class="hidden">
+      <div class="g-row g-row--between">
+        <div>
+          <div class="g-symbol" id="engSymbol">--</div>
+          <div class="g-symbol__sub" id="engSector">--</div>
+        </div>
+        <div class="g-row" style="gap:8px">
+          <span class="g-badge" id="engAction">--</span>
+          <span class="g-badge" id="engConf">--</span>
+          <button class="g-btn g-btn--ghost" id="openDetail">View full details →</button>
+        </div>
+      </div>
+
+      <h3 class="g-h3">Factor Scores (0-100)</h3>
+      <div class="g-grid g-grid--3" id="factorGrid"></div>
+
+      <h3 class="g-h3">20 Decision KPIs</h3>
+      <div class="g-grid g-grid--4" id="kpiGrid"></div>
+
+      <h3 class="g-h3">Trade Plan</h3>
+      <div class="g-grid g-grid--3" id="tradeGrid"></div>
+
+      <div id="reasoningBlock" class="hidden">
+        <h3 class="g-h3">AI Reasoning</h3>
+        <ul class="g-reasoning" id="reasoningList"></ul>
+      </div>
+    </div>
+
+    <div id="engineEmpty" class="g-empty">Enter a NIFTY 100 ticker above to load its scorecard.</div>
+  </div>
+</section>
+
+<!-- ==================== STOCK DETAIL PAGE ==================== -->
+<section class="g-section hidden" id="detail">
+  <div class="g-section__head">
+    <h2 id="detailTitle">Stock Detail</h2>
+    <p>Full deep-dive — 7 tabs covering technicals, fundamentals, AI analysis, risk, and price targets.</p>
+  </div>
+
+  <div class="g-card g-card--pad g-card--accent">
+    <!-- Tabs nav -->
+    <div class="g-tabs" role="tablist">
+      <button class="g-tab is-active" data-tab="overview" role="tab">Overview</button>
+      <button class="g-tab" data-tab="technicals" role="tab">Technicals</button>
+      <button class="g-tab" data-tab="fundamentals" role="tab">Fundamentals</button>
+      <button class="g-tab" data-tab="aianalysis" role="tab">AI Analysis</button>
+      <button class="g-tab" data-tab="risk" role="tab">Risk</button>
+      <button class="g-tab" data-tab="targets" role="tab">Price Targets</button>
+      <button class="g-tab" data-tab="news" role="tab">News</button>
+    </div>
+
+    <!-- Header strip -->
+    <div class="g-row g-row--between g-detail__head">
+      <div>
+        <div class="g-symbol" id="dSymbol">--</div>
+        <div class="g-symbol__sub" id="dSub">--</div>
+      </div>
+      <div class="g-row" style="gap:8px">
+        <span class="g-badge" id="dAction">--</span>
+        <span class="g-badge" id="dTrend">--</span>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="g-tabpanel is-active" data-panel="overview">
+      <div class="g-grid g-grid--4" id="dOverviewKpis"></div>
+      <h3 class="g-h3">Key Levels</h3>
+      <div class="g-grid g-grid--3" id="dLevels"></div>
+      <h3 class="g-h3">AI Reasoning</h3>
+      <ul class="g-reasoning" id="dReasoning"></ul>
+    </div>
+
+    <!-- TECHNICALS -->
+    <div class="g-tabpanel" data-panel="technicals">
+      <h3 class="g-h3">Moving Averages</h3>
+      <div class="g-grid g-grid--3" id="dMA"></div>
+      <h3 class="g-h3">Momentum Oscillators</h3>
+      <div class="g-grid g-grid--4" id="dOscillators"></div>
+      <h3 class="g-h3">Trend Strength</h3>
+      <div class="g-grid g-grid--3" id="dTrendGrid"></div>
+      <h3 class="g-h3">Volatility &amp; Volume</h3>
+      <div class="g-grid g-grid--4" id="dVolatility"></div>
+    </div>
+
+    <!-- FUNDAMENTALS -->
+    <div class="g-tabpanel" data-panel="fundamentals">
+      <div class="g-banner g-banner--warn" id="dFundNote">Fundamentals are not present in the current dataset. Below is a structured placeholder so the tab is wired and ready when a fundamentals feed is added.</div>
+      <div class="g-grid g-grid--3" id="dFundamentals"></div>
+    </div>
+
+    <!-- AI ANALYSIS -->
+    <div class="g-tabpanel" data-panel="aianalysis">
+      <h3 class="g-h3">AI Scorecard</h3>
+      <div class="g-grid g-grid--3" id="dAiFactors"></div>
+      <h3 class="g-h3">Decision KPIs</h3>
+      <div class="g-grid g-grid--4" id="dAiKpis"></div>
+    </div>
+
+    <!-- RISK -->
+    <div class="g-tabpanel" data-panel="risk">
+      <h3 class="g-h3">Volatility Profile</h3>
+      <div class="g-grid g-grid--3" id="dRiskGrid"></div>
+      <h3 class="g-h3">Drawdown &amp; SL Guidance</h3>
+      <div class="g-grid g-grid--2" id="dRiskPlan"></div>
+    </div>
+
+    <!-- PRICE TARGETS -->
+    <div class="g-tabpanel" data-panel="targets">
+      <h3 class="g-h3">Trade Plan</h3>
+      <div class="g-grid g-grid--3" id="dTargets"></div>
+      <h3 class="g-h3">52-Week Range</h3>
+      <div class="g-grid g-grid--3" id="d52w"></div>
+    </div>
+
+    <!-- NEWS -->
+    <div class="g-tabpanel" data-panel="news">
+      <div class="g-empty">Live news feed is not wired in this release. The tab is present so the surface is reserved for a future news API integration.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== METHODOLOGY ==================== -->
+<section class="g-section" id="methodology">
+  <div class="g-section__head">
+    <h2>How the score works</h2>
+  </div>
+  <div class="g-grid g-grid--3">
+    <div class="g-card g-card--pad">
+      <h3 class="g-h3">Cross-sectional ranking</h3>
+      <p>Every feature is ranked across today's NIFTY 100 universe so scores are
+      relative, not absolute. Top-decile = 90-100, bottom-decile = 10-20.</p>
+    </div>
+    <div class="g-card g-card--pad">
+      <h3 class="g-h3">AI model</h3>
+      <p>XGBoost classifier (150 trees, depth 4, lr 0.05) trained on a
+      walk-forward schedule. Walk-forward AUC 0.5253, accuracy 51.85%.</p>
+    </div>
+    <div class="g-card g-card--pad">
+      <h3 class="g-h3">Six factor blend</h3>
+      <p>Overall score = weighted blend of AI, technical, fundamental, momentum,
+      risk, and valuation. Each factor is 0-100 with equal default weight.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== DISCLAIMER ==================== -->
+<footer class="g-foot">
+  <div class="g-foot__inner">
+    <div>
+      <strong>Guarvi</strong> · NIFTY 100 directional-signal research portal.
+    </div>
+    <div class="g-foot__disc">
+      Research/education tool only. The directional signal is small (~2 bps/day
+      gross) and not profitable net of Indian retail costs; naive equal-weight
+      NIFTY 100 has historically been the better strategy. <strong>Not
+      SEBI-registered investment advice.</strong>
+    </div>
+    <div class="g-foot__api">
+      <a href="/api/v1/access" target="_blank">API</a> ·
+      <a href="/docs" target="_blank">Docs</a> ·
+      <span id="footAsOf">--</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ==================== DATA-SOURCE NOTE ==================== -->
+<div class="g-disclaimer">
+  <strong>Data note.</strong> Price data is from the daily EOD parquet.
+  Fundamentals (PE, EPS, ROE, debt, promoter holding) are <em>not</em> in the
+  current dataset; the fundamental and valuation factors are computed as
+  proxies from price/volume features and labelled "proxy" in the UI.
 </div>
 
-<main>
-  <div id="freshnessBanner" class="stale-banner hidden" role="alert" aria-live="polite">
-    <span class="sb-icon" aria-hidden="true">&#9888;</span>
-    <span class="sb-text" id="freshnessBannerText">
-      Data is older than one trading day. Showing last available LTP.
-    </span>
-    <button class="sb-close" id="freshnessBannerClose" type="button" aria-label="Dismiss">&times;</button>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi signal">
-      <div class="klabel">Signal direction</div>
-      <div class="kval" id="kpiDir">--</div>
-      <div class="kdelta" id="kpiDirSub">--</div>
-      <div class="kbar"></div>
-    </div>
-    <div class="kpi">
-      <div class="klabel">Breadth P(up)</div>
-      <div class="kval" id="kpiBreadth">--</div>
-      <div class="kdelta" id="kpiBreadthSub">averaged across 102 symbols</div>
-      <div class="kbar"></div>
-    </div>
-    <div class="kpi">
-      <div class="klabel">Model AUC (walk-forward)</div>
-      <div class="kval" id="kpiAuc">--</div>
-      <div class="kdelta good" id="kpiAucSub">--</div>
-      <div class="kbar"></div>
-    </div>
-    <div class="kpi">
-      <div class="klabel">Gross edge (XGB vs naive)</div>
-      <div class="kval" id="kpiEdge">--</div>
-      <div class="kdelta" id="kpiEdgeSub">--</div>
-      <div class="kbar"></div>
-    </div>
-    <div class="kpi" id="kpiNetCard">
-      <div class="klabel">Net edge (after Indian costs)</div>
-      <div class="kval" id="kpiNet">--</div>
-      <div class="kdelta" id="kpiNetSub">cost-aware backtest</div>
-      <div class="kbar"></div>
-    </div>
-  </div>
-
-  <div class="kpis" style="margin-top: 14px;">
-    <div class="kpi">
-      <div class="klabel">Accuracy (walk-forward)</div>
-      <div class="kval" id="kpiAcc">--</div>
-      <div class="kdelta" id="kpiAccSub">vs base rate 50.4%</div>
-      <div class="kbar"></div>
-    </div>
-    <div class="kpi">
-      <div class="klabel">Universe</div>
-      <div class="kval" id="kpiUniv">NIFTY 100</div>
-      <div class="kdelta" id="kpiUnivSub">cross-sectional features</div>
-      <div class="kbar"></div>
-    </div>
-    <div class="kpi">
-      <div class="klabel">Model</div>
-      <div class="kval" id="kpiModel" style="font-size: 22px;">XGBoost</div>
-      <div class="kdelta" id="kpiModelSub">150 trees &middot; depth 4 &middot; lr 0.05 &middot; median imputer</div>
-      <div class="kbar"></div>
-    </div>
-    <div class="kpi">
-      <div class="klabel">Data freshness</div>
-      <div class="kval" id="kpiFresh" style="font-size: 18px;">--</div>
-      <div class="kdelta" id="kpiFreshSub">as of <span id="kpiAsOf">--</span></div>
-      <div class="kbar"></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>Stock screener
-      <span class="pill" id="asofPill">--</span>
-    </h2>
-    <div class="screener-head">
-      <div class="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M21 21l-4.3-4.3"></path>
-        </svg>
-        <input id="searchBox" type="text" placeholder="Filter by symbol (e.g. RELIANCE, INFY, TCS)&hellip;" autocomplete="off" />
-      </div>
-      <div class="filter">
-        <button data-dir="ALL"  class="active">All</button>
-        <button data-dir="UP">UP only</button>
-        <button data-dir="DOWN">DOWN only</button>
-      </div>
-      <div class="count" id="countPill">--</div>
-    </div>
-
-    <div class="picker-row">
-      <label for="symbolPick">Selected stock</label>
-      <select id="symbolPick"><option value="">&mdash; pick a NIFTY 100 symbol &mdash;</option></select>
-      <button class="clear-btn" id="clearPick" type="button">Clear</button>
-    </div>
-
-    <div class="grid2">
-      <div class="subcard top">
-        <h3>Top 5 &mdash; highest P(up)</h3>
-        <table id="tblTop">
-          <thead><tr><th>#</th><th>Symbol</th><th>P(up)</th><th>Confidence</th><th>Last close</th></tr></thead>
-          <tbody><tr><td colspan="5" class="skel">Loading&hellip;</td></tr></tbody>
-        </table>
-      </div>
-      <div class="subcard bot">
-        <h3>Bottom 5 &mdash; lowest P(up)</h3>
-        <table id="tblBot">
-          <thead><tr><th>#</th><th>Symbol</th><th>P(up)</th><th>Confidence</th><th>Last close</th></tr></thead>
-          <tbody><tr><td colspan="5" class="skel">Loading&hellip;</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="deepdive" id="deepDive" aria-live="polite">
-      <h2>&#128269; Selected Stock Deep Dive <span class="asof" id="ddAsOf"></span></h2>
-      <div class="sym-big" id="ddSymbol">&mdash;</div>
-      <div id="ddBody" class="dd-loading">Pick a symbol above to see P(UP), confidence, SMA, 52-week range, and a 30-day close chart.</div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>Live quotes <span class="pill" id="sessionPill">market hours only</span></h2>
-    <div class="quote-bar idle" id="quoteBar">Live collector is idle or it is outside NSE hours (09:15&ndash;15:30 IST).</div>
-    <table id="tblQuotes">
-      <thead><tr><th>Symbol</th><th>Last</th><th>Change %</th><th>Volume</th></tr></thead>
-      <tbody><tr><td colspan="4" class="skel">No live data yet.</td></tr></tbody>
-    </table>
-  </div>
-
-  <p class="foot">
-    Not investment advice &middot; See <code>PROJECT_STATUS.md</code> for the full, honest research verdict.
-    The signal is real but small (~2 bps/day gross) and not profitable net of Indian retail costs
-    (~37 bps/day round-trip). Naive equal-weight NIFTY100 has historically been the better strategy.
-  </p>
-</main>
-
 <script>
-const state = { filter: 'ALL', query: '', allSymbols: [], sessionOpen: false, selected: null };
-const $ = (id) => document.getElementById(id);
+/* ============================================================
+   GUARVI · single-page client.
+   All data comes from the v1 API. No external CDNs, no trackers.
+============================================================ */
 
-// ---- Tiny in-memory cache so widget interactions don't re-hit the network ----
-const dataCache = {
-  _m: new Map(), // url -> { t, data }
-  get(url, maxAgeMs) {
-    const e = this._m.get(url);
-    if (!e) return null;
-    if (Date.now() - e.t > maxAgeMs) return null;
-    return e.data;
-  },
-  set(url, data) { this._m.set(url, { t: Date.now(), data }); return data; },
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+const fmt = {
+  pct: v => v == null ? '—' : `${(v*100).toFixed(2)}%`,
+  num: (v, d=2) => v == null ? '—' : Number(v).toLocaleString('en-IN', { maximumFractionDigits: d }),
+  money: v => v == null ? '—' : `₹${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+  int: v => v == null ? '—' : Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 }),
+  signedPct: v => v == null ? '—' : `${v >= 0 ? '+' : ''}${(v*100).toFixed(2)}%`,
+  ts: s => s ? new Date(s).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—',
+  shortTs: s => s ? new Date(s).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—',
 };
-async function cachedFetch(url, maxAgeMs) {
-  const hit = dataCache.get(url, maxAgeMs);
-  if (hit !== null) return hit;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(url + ' -> ' + r.status);
-  const data = await r.json();
-  return dataCache.set(url, data);
-}
 
-function fmtNum(x, digits = 2) {
-  if (x == null || isNaN(x)) return '--';
-  return Number(x).toLocaleString('en-IN', { maximumFractionDigits: digits });
-}
-function fmtInt(x) {
-  if (x == null || isNaN(x)) return '--';
-  return Number(x).toLocaleString('en-IN', { maximumFractionDigits: 0 });
-}
-function fmtPct(x, digits = 1) {
-  if (x == null || isNaN(x)) return '--';
-  return (x * 100).toFixed(digits) + '%';
-}
-function fmtSigned(x, digits = 2) {
-  if (x == null || isNaN(x)) return '--';
-  const v = Number(x);
-  return (v >= 0 ? '+' : '') + v.toLocaleString('en-IN', { maximumFractionDigits: digits });
-}
-function fmtSignedPct(x, digits = 2) {
-  if (x == null || isNaN(x)) return '--';
-  const v = Number(x);
-  return (v >= 0 ? '+' : '') + v.toFixed(digits) + '%';
-}
-function fmtDate(d) {
-  if (!d) return '--';
-  // accept "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS..."
-  const s = String(d);
-  const [y, m, day] = s.slice(0, 10).split('-');
-  if (!y) return s;
-  return `${day}-${m}-${y}`;
-}
+const api = {
+  async get(path) {
+    const r = await fetch(path, { headers: { 'accept': 'application/json' } });
+    if (!r.ok) throw new Error(`${path} ${r.status}`);
+    return r.json();
+  },
+  kpis: () => api.get('/api/v1/kpis'),
+  market: () => api.get('/api/v1/market'),
+  screener: (limit=10, dir='ALL') => api.get(`/api/v1/screener?limit=${limit}&direction=${dir}`),
+  scores: (limit=102) => api.get(`/api/v1/scores?limit=${limit}`),
+  symbol: sym => api.get(`/api/v1/scores/${encodeURIComponent(sym)}`),
+  reasoning: sym => api.get(`/api/v1/reasoning/${encodeURIComponent(sym)}`),
+  technicals: sym => api.get(`/api/v1/technicals/${encodeURIComponent(sym)}`),
+  now: () => api.get('/api/v1/now'),
+  freshness: () => api.get('/api/v1/freshness'),
+};
 
-async function tickClock() {
+/* ----- hero KPIs ----- */
+async function loadKpis() {
   try {
-    const r = await fetch('/api/now');
-    if (!r.ok) return;
-    const n = await r.json();
-    $('liveClock').textContent = n.ist_human;
-    state.sessionOpen = n.in_market_session;
-    const dot = $('liveDot');
-    if (n.in_market_session) dot.classList.add('on'); else dot.classList.remove('on');
-    const sp = $('sessionPill');
-    sp.textContent = n.in_market_session ? 'session live' : 'market closed';
-    sp.className = 'pill ' + (n.in_market_session ? 'up' : 'flat');
-  } catch (e) { /* network blip, keep last value */ }
-}
-
-async function tickNifty() {
-  try {
-    const data = await cachedFetch('/api/nifty50', 30_000);
-    const n = data;
-    // top bar pill
-    const pill = $('niftyPill');
-    if (n.value == null) {
-      $('niftyVal').textContent = '--';
-      $('niftyChg').textContent = n.source === 'unavailable' ? 'unavailable' : 'no data';
-      pill.classList.remove('up', 'down');
-    } else {
-      $('niftyVal').textContent = fmtNum(n.value, 2);
-      const chgTxt = (n.change >= 0 ? '+' : '') + fmtNum(n.change, 2)
-                   + ' (' + (n.change_percent >= 0 ? '+' : '') + fmtNum(n.change_percent, 2) + '%)';
-      $('niftyChg').textContent = chgTxt;
-      pill.classList.remove('up', 'down');
-      pill.classList.add(n.change >= 0 ? 'up' : 'down');
-      pill.title = (n.source || '') + ' · as of ' + (n.as_of || '--');
-    }
-    // big hero strip
-    const heroVal = $('indexVal');
-    const heroPct = $('indexPct');
-    const heroSrc = $('indexSrc');
-    if (n.value == null) {
-      heroVal.textContent = '—';
-      heroPct.textContent = 'unavailable';
-      heroPct.className = 'pct-badge flat';
-      heroSrc.textContent = (n.source || 'unavailable') + ' · no data';
-    } else {
-      heroVal.textContent = fmtNum(n.value, 2);
-      const chg = n.change_percent;
-      const cls = chg == null ? 'flat' : (chg >= 0 ? 'up' : 'down');
-      heroPct.textContent = (chg == null ? '' : (chg >= 0 ? '+' : '')) + fmtNum(chg, 2) + '%';
-      heroPct.className = 'pct-badge ' + cls;
-      heroSrc.textContent = (n.source || '') + ' · as of ' + fmtDate(n.as_of);
-    }
-  } catch (e) { /* ignore */ }
-}
-
-// ---- Data freshness (P1) — surfaces a stale-data banner and updates the KPI ----
-let _freshnessLast = null;
-function showFreshnessBanner(f) {
-  const el = $('freshnessBanner');
-  if (!el) return;
-  // respect user's dismiss for the rest of the session
-  if (sessionStorage.getItem('freshnessBannerDismissed') === '1') {
-    el.classList.add('hidden');
-    return;
-  }
-  if (!f || !f.is_stale) {
-    el.classList.add('hidden');
-    return;
-  }
-  const age = f.age_trading_days != null ? f.age_trading_days : '?';
-  const md  = f.max_date || 'unknown';
-  const src = f.source || 'parquet';
-  $('freshnessBannerText').innerHTML =
-    'Stale data warning &mdash; parquet is <b>' + age + ' trading day(s)</b> old '
-    + '(last trading day: <b>' + md + '</b> &middot; source: ' + src + '). '
-    + 'Showing last available LTP. Run <code>python scripts/ingest_eod.py</code> to refresh.';
-  el.classList.remove('hidden');
-}
-function hideFreshnessBanner() {
-  $('freshnessBanner').classList.add('hidden');
-  sessionStorage.setItem('freshnessBannerDismissed', '1');
-}
-async function tickFreshness() {
-  try {
-    const f = await cachedFetch('/api/freshness', 30_000);
-    if (!f) return;
-    _freshnessLast = f;
-    // Update the data-freshness KPI card with a clear, truth-from-file value
-    if (f.max_date) {
-      $('kpiFresh').textContent = f.is_stale ? 'stale' : 'fresh';
-      $('kpiFresh').className = 'kval ' + (f.is_stale ? 'down' : 'up');
-      $('kpiFreshSub').innerHTML =
-        'as of <b>' + f.max_date + '</b> &middot; ' + (f.age_trading_days != null ? f.age_trading_days + 'd old' : '--')
-        + ' &middot; <span class="muted">' + (f.source || 'parquet') + '</span>';
-    }
-    // Update the screener as-of pill so it shows the actual data date, not the model date
-    if (f.max_date) $('asofPill').textContent = 'as of ' + f.max_date;
-    showFreshnessBanner(f);
-  } catch (e) { /* ignore */ }
-}
-
-async function loadSignal() {
-  try {
-    const s = await cachedFetch('/api/signal', 60_000);
-    $('disc').innerHTML = '<b>Disclaimer.</b> ' + (s.disclaimer || 'Research/education tool only.');
-
-    const dir = s.direction || 'FLAT';
-    $('kpiDir').textContent = dir;
-    $('kpiDir').className = 'kval ' + (dir === 'UP' ? 'up' : dir === 'DOWN' ? 'down' : 'flat');
-    $('kpiDirSub').innerHTML = 'as of <b>' + (s.as_of || '--') + '</b> &middot; ' + (s.n_symbols || 0) + ' symbols &middot; '
-      + '<span class="badge ' + (dir === 'UP' ? 'up' : dir === 'DOWN' ? 'down' : 'flat') + '">' + dir + '</span>';
-
-    const bp = s.market_breadth_prob;
-    $('kpiBreadth').textContent = bp == null ? '--' : (bp * 100).toFixed(1) + '%';
-    $('kpiBreadth').className = 'kval ' + (bp >= 0.5 ? 'up' : 'down');
-    $('kpiBreadthSub').textContent = bp >= 0.5
-      ? 'breadth leans UP (≥50%)' : 'breadth leans DOWN (<50%)';
-
-    $('kpiFresh').textContent = s.freshness ? s.freshness.split(';')[0] : '--';
-    $('kpiAsOf').textContent = s.as_of || '--';
-    // Prefer the freshness marker (truth-from-file) for the screener as-of pill
-    if (_freshnessLast && _freshnessLast.max_date) {
-      $('asofPill').textContent = 'as of ' + _freshnessLast.max_date;
-    } else {
-      $('asofPill').textContent = s.as_of ? 'as of ' + s.as_of : '--';
-    }
-  } catch (e) { /* keep last */ }
-}
-
-async function loadPerf() {
-  try {
-    const p = await cachedFetch('/api/performance', 60_000);
-    const v = p.summary || {};
-    $('kpiAuc').textContent  = v.base_signal_auc != null ? Number(v.base_signal_auc).toFixed(4) : '--';
-    $('kpiAucSub').textContent = v.phase9_probe_extended_auc != null
-      ? 'Phase 9 FII/DII probe: ' + Number(v.phase9_probe_extended_auc).toFixed(4)
-      : 'expanding-window walk-forward';
-    $('kpiAcc').textContent = v.base_signal_accuracy_pct != null
-      ? v.base_signal_accuracy_pct.toFixed(2) + '%' : '--';
-    $('kpiAccSub').textContent = v.base_rate_pct != null
-      ? 'base rate ' + v.base_rate_pct + '% (naive NIFTY100)' : 'no random train/test splits';
-    $('kpiEdge').textContent = v.gross_edge_bps_per_day != null
-      ? '~' + v.gross_edge_bps_per_day + ' bps' : '--';
-    $('kpiEdgeSub').textContent = v.gross_edge_bps_per_day != null
-      ? '~' + (v.gross_edge_bps_per_day / 100).toFixed(2) + '% per day (gross)' : '--';
-
-    // Net edge from the cost-aware backtest (P2)
-    const nb = v.net_backtest;
-    if (nb && nb.n_days) {
-      const cumNet = nb.net_cum_return_pct;
-      const cumGross = nb.gross_cum_return_pct;
-      const naive = nb.naive_equal_weight_cum_return_pct;
-      const edge = nb.edge_vs_naive_pct;
-      $('kpiNet').textContent = (cumNet != null ? (cumNet >= 0 ? '+' : '') + cumNet.toFixed(1) + '%' : '--');
-      $('kpiNet').className = 'kval ' + (cumNet >= 0 ? 'up' : 'down');
-      $('kpiNetSub').innerHTML =
-        'LONG ' + nb.n_long + ' / SHORT ' + nb.n_short + ' · ' + nb.n_days + ' sessions · '
-        + (nb.cost_bps_roundtrip_per_day != null ? nb.cost_bps_roundtrip_per_day.toFixed(1) + ' bps/day cost' : '')
-        + '<br>'
-        + 'gross ' + (cumGross != null ? (cumGross >= 0 ? '+' : '') + cumGross.toFixed(1) + '%' : '--')
-        + ' · naive ' + (naive != null ? (naive >= 0 ? '+' : '') + naive.toFixed(1) + '%' : '--')
-        + ' · edge ' + (edge != null ? (edge >= 0 ? '+' : '') + edge.toFixed(1) + '%' : '--')
-        + ' · Sharpe ' + (nb.net_sharpe != null ? nb.net_sharpe.toFixed(2) : '--');
-    } else {
-      $('kpiNet').textContent = '--';
-      $('kpiNetSub').textContent = 'cost-aware backtest not yet available';
-    }
-  } catch (e) { /* ignore */ }
-}
-
-function applyFilters(symbols) {
-  const q = state.query.trim().toUpperCase();
-  let out = symbols;
-  if (q) out = out.filter(s => s.symbol.toUpperCase().includes(q));
-  if (state.filter === 'UP')   out = out.filter(s => s.prob_up >= 0.5);
-  if (state.filter === 'DOWN') out = out.filter(s => s.prob_up <  0.5);
-  return out;
-}
-
-function rowHTML(rank, x) {
-  const pct = (x.prob_up * 100).toFixed(1);
-  const cls = x.prob_up >= 0.5 ? 'up' : 'down';
-  const last = x.last_close != null ? Number(x.last_close).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--';
-  const sel = state.selected && state.selected.toUpperCase() === x.symbol.toUpperCase() ? ' selected' : '';
-  return `<tr class="sym-row${sel}" data-symbol="${x.symbol}">
-    <td class="muted">${rank}</td>
-    <td class="sym">${x.symbol}</td>
-    <td class="num ${cls}">${pct}%</td>
-    <td><div class="bar"><span class="${cls}" style="width:${pct}%"></span></div></td>
-    <td class="num">${last}</td>
-  </tr>`;
-}
-
-function renderScreener() {
-  const filtered = applyFilters(state.allSymbols);
-  const sorted = [...filtered].sort((a, b) => b.prob_up - a.prob_up);
-  const top5 = sorted.slice(0, 5);
-  const bot5 = sorted.slice(-5).reverse();
-
-  const fill = (id, list) => {
-    const tb = $(id).querySelector('tbody');
-    if (!list.length) {
-      tb.innerHTML = '<tr><td colspan="5" class="skel">No symbols match the current filter.</td></tr>';
-      return;
-    }
-    tb.innerHTML = list.map((x, i) => rowHTML(i + 1, x)).join('');
-  };
-  fill('tblTop', top5);
-  fill('tblBot', bot5);
-
-  $('countPill').textContent =
-    filtered.length + ' / ' + state.allSymbols.length + ' symbols'
-    + (state.query ? ' matching "' + state.query + '"' : '')
-    + (state.filter !== 'ALL' ? ' (' + state.filter + ')' : '');
-
-  // refresh selectbox options (only on first paint — preserve current selection on re-renders)
-  const sel = $('symbolPick');
-  if (sel && sel.options.length <= 1) {
-    const opts = state.allSymbols
-      .slice()
-      .sort((a, b) => a.symbol.localeCompare(b.symbol))
-      .map(s => `<option value="${s.symbol}">${s.symbol}</option>`)
-      .join('');
-    sel.insertAdjacentHTML('beforeend', opts);
-  }
-}
-
-async function loadScreen() {
-  try {
-    const s = await cachedFetch('/api/screen?limit=102', 60_000);
-    state.allSymbols = s.symbols || [];
-    renderScreener();
-  } catch (e) { /* keep last */ }
-}
-
-async function loadQuotes() {
-  let s;
-  try {
-    s = await cachedFetch('/api/quotes?limit=50', 30_000);
+    const k = await api.kpis();
+    $('#kpiScanned').textContent = k.stocks_scanned_today ?? '—';
+    $('#kpiBreadth').textContent = k.winning_signals_30d_pct == null ? '—' : `${k.winning_signals_30d_pct.toFixed(1)}%`;
+    $('#kpiBreadthSub').textContent = 'mean P(UP) across universe';
+    $('#kpiAvg').textContent = k.avg_return_pct == null ? '—' : `${k.avg_return_pct.toFixed(2)}%`;
+    $('#kpiAvgSub').textContent = 'gross, bps/day';
+    $('#kpiSuccess').textContent = k.success_rate_pct == null ? '—' : `${k.success_rate_pct.toFixed(2)}%`;
+    $('#kpiPremium').textContent = k.active_premium_users == null ? 'N/A' : k.active_premium_users.toLocaleString('en-IN');
+    $('#asOf').textContent = fmt.shortTs(k.as_of);
+    $('#footAsOf').textContent = `as of ${fmt.shortTs(k.as_of)}`;
   } catch (e) {
-    const bar = $('quoteBar');
-    bar.textContent = 'Live quotes unavailable: ' + e.message;
-    bar.className = 'quote-bar idle';
-    $('tblQuotes').querySelector('tbody').innerHTML =
-      '<tr><td colspan="4" class="skel">No live data yet.</td></tr>';
-    return;
+    console.warn('kpis', e);
   }
-  const tb = $('tblQuotes').querySelector('tbody');
-  const bar = $('quoteBar');
-  if (!s.quotes || !s.quotes.length) {
-    if (state.sessionOpen) {
-      bar.textContent = 'Live collector is connected but no rows for this minute yet.';
-      bar.className = 'quote-bar ok';
-    } else {
-      bar.textContent = 'Live collector is idle or it is outside NSE hours (09:15–15:30 IST).';
-      bar.className = 'quote-bar idle';
-    }
-    tb.innerHTML = '<tr><td colspan="4" class="skel">No live data yet.</td></tr>';
-    return;
-  }
-  // New: tell the user explicitly when we're showing the last LTP from the
-  // parquet because the live collector is idle.
-  const meta = `${s.count} symbols · source: ${s.source} · as of ${fmtDate(s.as_of)}`;
-  if (s.market_state === 'closed') {
-    bar.textContent = `Market closed. Showing last available LTP as of ${fmtDate(s.as_of)} 15:30 IST · ${meta}`;
-    bar.className = 'quote-bar idle';
-  } else {
-    bar.textContent = `Showing ${s.count} live ticks from the Groww collector · ${meta}`;
-    bar.className = 'quote-bar ok';
-  }
-  tb.innerHTML = s.quotes.map(q => {
-    const ch = q.change_percent != null ? q.change_percent : q.change;
-    const cls = (typeof ch === 'number' && ch >= 0) ? 'up' : 'down';
-    const last = q.last != null ? q.last : q.close;
-    return `<tr>
-      <td class="sym">${q.symbol}</td>
-      <td class="num">${last != null ? Number(last).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}</td>
-      <td class="num ${cls}">${ch != null ? (ch >= 0 ? '+' : '') + Number(ch).toFixed(2) + '%' : '--'}</td>
-      <td class="num muted">${q.volume != null ? Number(q.volume).toLocaleString('en-IN') : '--'}</td>
-    </tr>`;
-  }).join('');
 }
 
-$('searchBox').addEventListener('input', (e) => {
-  state.query = e.target.value;
-  renderScreener();
-});
-document.querySelectorAll('.filter button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.filter = btn.dataset.dir;
-    renderScreener();
-  });
-});
+/* ----- market dashboard ----- */
+async function loadMarket() {
+  try {
+    const m = await api.market();
+    // NIFTY 50
+    const n = m.nifty50 || {};
+    $('#niftyValue').textContent = n.value == null ? '—' : Number(n.value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    const ch = n.change_percent;
+    const chStr = ch == null ? '—' : `${ch >= 0 ? '+' : ''}${Number(ch).toFixed(2)}%`;
+    $('#niftyChange').textContent = chStr;
+    $('#niftyChange').className = 'g-card__sub ' + (ch > 0 ? 'bull' : ch < 0 ? 'bear' : '');
+    $('#niftyBadge').textContent = n.value ? (ch >= 0 ? '▲' : '▼') : '—';
+    $('#niftyBadge').className = 'g-badge ' + (ch > 0 ? 'g-badge--bull' : ch < 0 ? 'g-badge--bear' : '');
+    $('#niftySource').textContent = n.source ? `source: ${n.source}` : '';
 
-// ---- Selected stock → row highlight + deep-dive panel ----
-function clearSelection() {
-  state.selected = null;
-  $('symbolPick').value = '';
-  document.querySelectorAll('tbody tr.sym-row.selected').forEach(tr => tr.classList.remove('selected'));
-  $('deepDive').classList.remove('open');
-  $('ddBody').innerHTML = '<div class="dd-loading">Pick a symbol above to see P(UP), confidence, SMA, 52-week range, and a 30-day close chart.</div>';
-  $('ddAsOf').textContent = '';
-  $('ddSymbol').textContent = '—';
-}
+    // Breadth
+    const bp = m.breadth_prob || 0.5;
+    $('#breadthValue').textContent = `${(bp*100).toFixed(1)}%`;
+    $('#breadthBar').style.width = `${(bp*100).toFixed(1)}%`;
+    $('#breadthBar').className = 'g-bar__fill ' + (bp >= 0.55 ? 'bull' : bp <= 0.45 ? 'bear' : 'neutral');
+    $('#breadthBadge').textContent = `${m.advance_decline.advancers}/${m.advance_decline.decliners}`;
+    $('#breadthBadge').className = 'g-badge ' + (bp >= 0.55 ? 'g-badge--bull' : bp <= 0.45 ? 'g-badge--bear' : 'g-badge--neutral');
+    $('#advancers').textContent = m.advance_decline.advancers;
+    $('#decliners').textContent = m.advance_decline.decliners;
 
-function applySelection(symbol) {
-  state.selected = symbol;
-  // toggle .selected on matching rows in BOTH tables
-  const norm = (s) => (s || '').toUpperCase();
-  document.querySelectorAll('tbody tr.sym-row').forEach(tr => {
-    tr.classList.toggle('selected', norm(tr.dataset.symbol) === norm(symbol));
-  });
-  // keep selectbox in sync (if the click came from a row)
-  $('symbolPick').value = symbol || '';
-  if (!symbol) {
-    $('deepDive').classList.remove('open');
-    return;
+    // Sentiment gauge
+    const angle = (bp - 0.5) * 180;  // -90 .. +90
+    $('#sentNeedle').style.transform = `translateX(-50%) rotate(${angle}deg)`;
+    $('#sentLabel').textContent = m.sentiment;
+    $('#sentSub').textContent = m.sentiment_label;
+    $('#sentBadge').textContent = m.sentiment;
+    $('#sentBadge').className = 'g-badge ' + (
+      m.sentiment === 'Bullish' ? 'g-badge--bull' :
+      m.sentiment === 'Bearish' ? 'g-badge--bear' : 'g-badge--neutral'
+    );
+
+    // Movers
+    const tg = m.top_gainers || [];
+    const tl = m.top_losers || [];
+    $('#topGainers').innerHTML = tg.map(g => `
+      <li><span class="g-mover__sym">${g.symbol}</span>
+          <span class="g-mover__px">${g.last == null ? '—' : Number(g.last).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+          <span class="g-mover__ch bull">${g.change_pct == null ? '—' : '+' + Number(g.change_pct).toFixed(2) + '%'}</span></li>
+    `).join('') || '<li class="g-empty">—</li>';
+    $('#topLosers').innerHTML = tl.map(l => `
+      <li><span class="g-mover__sym">${l.symbol}</span>
+          <span class="g-mover__px">${l.last == null ? '—' : Number(l.last).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+          <span class="g-mover__ch bear">${l.change_pct == null ? '—' : Number(l.change_pct).toFixed(2) + '%'}</span></li>
+    `).join('') || '<li class="g-empty">—</li>';
+
+    // Sector heatmap
+    const heat = (m.sector_heatmap || []).slice().sort((a, b) => b.avg_score - a.avg_score);
+    const min = Math.min(...heat.map(h => h.avg_score));
+    const max = Math.max(...heat.map(h => h.avg_score));
+    $('#sectorHeatmap').innerHTML = heat.map(s => {
+      const t = (s.avg_score - min) / Math.max(0.0001, (max - min));
+      const hue = 0 + t * 130;
+      const light = 30 + t * 25;
+      return `<div class="g-heatcell" style="background: hsl(${hue}, 65%, ${light}%);">
+        <div class="g-heatcell__name">${s.sector}</div>
+        <div class="g-heatcell__score">${s.avg_score.toFixed(1)}</div>
+        <div class="g-heatcell__n">${s.n} sym</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    console.warn('market', e);
   }
-  $('ddSymbol').textContent = symbol;
-  $('ddAsOf').textContent = 'loading…';
-  $('ddBody').innerHTML = '<div class="dd-loading">Fetching deep-dive for ' + symbol + '…</div>';
-  $('deepDive').classList.add('open');
-  loadDeepDive(symbol);
 }
 
-$('symbolPick').addEventListener('change', (e) => applySelection(e.target.value));
-$('clearPick').addEventListener('click', clearSelection);
-// Event delegation for clicks on any table row (Top 5 / Bottom 5)
-document.addEventListener('click', (e) => {
-  const tr = e.target.closest('tbody tr.sym-row');
-  if (!tr) return;
-  const sym = tr.dataset.symbol;
+/* ----- screener table ----- */
+async function loadScreener(dir='ALL') {
+  try {
+    const s = await api.screener(10, dir);
+    const rows = s.rows || [];
+    $('#screenerBody').innerHTML = rows.map(r => {
+      const cls = r.action.includes('BUY') ? 'bull' : r.action.includes('SELL') ? 'bear' : 'neutral';
+      const sig = r.signal;
+      return `<tr data-sym="${r.symbol}" class="g-clickable">
+        <td>${r.rank}</td>
+        <td><strong>${r.symbol}</strong></td>
+        <td><span class="g-tag">${r.sector}</span></td>
+        <td class="num">${fmt.money(r.cmp)}</td>
+        <td><span class="g-badge g-badge--${sig.toLowerCase()}">${sig}</span></td>
+        <td><span class="g-badge g-badge--${cls}">${r.action}</span></td>
+        <td class="num">${r.ai_score?.toFixed(1) ?? '—'}</td>
+        <td class="num"><strong>${r.overall_score?.toFixed(1) ?? '—'}</strong></td>
+        <td class="num">${r.confidence_pct == null ? '—' : r.confidence_pct.toFixed(1) + '%'}</td>
+        <td class="num ${r.expected_upside_pct > 0 ? 'bull' : r.expected_upside_pct < 0 ? 'bear' : ''}">${r.expected_upside_pct == null ? '—' : fmt.signedPct(r.expected_upside_pct/100)}</td>
+        <td class="num">${r.risk_level ?? '—'}</td>
+        <td class="num">${r.risk_reward == null ? '—' : '1:' + r.risk_reward.toFixed(2)}</td>
+        <td class="num">${fmt.money(r.entry)}</td>
+        <td class="num">${fmt.money(r.stop_loss)}</td>
+        <td class="num">${fmt.money(r.target_1)}</td>
+        <td class="num">${fmt.money(r.target_2)}</td>
+        <td>${r.holding_period ?? '—'}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="17" class="g-empty">No rows.</td></tr>`;
+
+    $$('#screenerBody tr.g-clickable').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const sym = tr.dataset.sym;
+        $('#symbolPicker').value = sym;
+        loadEngine(sym);
+        document.getElementById('engine').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  } catch (e) {
+    console.warn('screener', e);
+  }
+}
+
+/* ----- BUY DECISION ENGINE card ----- */
+async function loadEngine(sym) {
+  const upper = (sym || '').toUpperCase().trim();
+  if (!upper) return;
+  try {
+    const c = await api.symbol(upper);
+    $('#engineEmpty').classList.add('hidden');
+    $('#engineCard').classList.remove('hidden');
+    $('#reasoningBlock').classList.add('hidden');
+    $('#engSymbol').textContent = c.symbol;
+    $('#engSector').textContent = c.sector;
+    const s = c.scores;
+    let action = 'HOLD';
+    if (s.overall >= 70) action = 'STRONG BUY';
+    else if (s.overall >= 60) action = 'BUY';
+    else if (s.overall <= 30) action = 'STRONG SELL';
+    else if (s.overall <= 40) action = 'SELL';
+    $('#engAction').textContent = action;
+    $('#engAction').className = 'g-badge ' + (action.includes('BUY') ? 'g-badge--bull' : action.includes('SELL') ? 'g-badge--bear' : 'g-badge--neutral');
+    const cp = c.confidence_pct;
+    let confLevel = 'Low';
+    if (cp != null) { if (cp >= 30) confLevel = 'High'; else if (cp >= 10) confLevel = 'Moderate'; }
+    $('#engConf').textContent = `${confLevel} · ${cp == null ? '—' : cp.toFixed(1) + '%'}`;
+    $('#engConf').className = 'g-badge ' + (confLevel === 'High' ? 'g-badge--bull' : confLevel === 'Moderate' ? 'g-badge--gold' : 'g-badge--bear');
+
+    // Factor scores
+    const factors = [
+      ['AI', s.ai], ['Technical', s.technical], ['Fundamental', s.fundamental],
+      ['Momentum', s.momentum], ['Risk', s.risk], ['Valuation', s.valuation], ['Overall', s.overall],
+    ];
+    $('#factorGrid').innerHTML = factors.map(([n, v]) => {
+      const cls = v >= 70 ? 'bull' : v <= 30 ? 'bear' : 'neutral';
+      return `<div class="g-card g-card--pad g-score">
+        <div class="g-score__name">${n}</div>
+        <div class="g-score__val ${cls}">${v.toFixed(1)}</div>
+        <div class="g-bar"><div class="g-bar__fill ${cls}" style="width:${v.toFixed(1)}%"></div></div>
+      </div>`;
+    }).join('');
+
+    // 20 KPIs
+    const k = c.kpis;
+    const tp = c.trade_plan;
+    const items = [
+      ['AI Conviction', s.ai, '/100'],
+      ['Risk:Reward', k.rr_ratio, ''],
+      ['Win Probability', k.win_probability_pct, '%'],
+      ['Expected Return', k.expected_return_pct, '%'],
+      ['Downside Risk', k.downside_risk_pct, '%'],
+      ['Trend Strength', k.trend_strength, '/100'],
+      ['Technical Score', s.technical, '/100'],
+      ['Fundamental Score', s.fundamental, '/100 (proxy)'],
+      ['Relative Strength', k.relative_strength, '/100'],
+      ['Sector Strength', k.sector_strength, '/100'],
+      ['Institutional Activity', k.institutional_activity, '/100'],
+      ['Delivery Volume', k.delivery_volume_strength, '/100'],
+      ['Earnings Trend', k.earnings_growth_trend, '/100 (proxy)'],
+      ['Revenue Trend', k.revenue_growth_trend, '/100 (proxy)'],
+      ['Debt Quality', k.debt_quality, '/100 (proxy)'],
+      ['Liquidity', k.liquidity_score, '/100'],
+      ['Confidence', k.confidence_pct, '%'],
+      ['Momentum', s.momentum, '/100'],
+      ['Valuation', s.valuation, '/100 (proxy)'],
+      ['Risk Score', s.risk, '/100'],
+    ];
+    $('#kpiGrid').innerHTML = items.map(([n, v, suffix]) => {
+      const num = v == null ? '—' : (typeof v === 'number' ? v.toFixed(1) : v);
+      return `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value">${num}<span class="g-kpi__unit">${suffix}</span></div></div>`;
+    }).join('');
+
+    // Trade plan
+    const tradeItems = [
+      ['CMP', fmt.money(c.last_close)],
+      ['Entry', fmt.money(tp.entry_price)],
+      ['Stop Loss', fmt.money(tp.stop_loss)],
+      ['Target 1', fmt.money(tp.target_1)],
+      ['Target 2', fmt.money(tp.target_2)],
+      ['Holding', tp.holding_period],
+      ['Risk Level', tp.risk_level],
+      ['Last Close', fmt.money(c.last_close)],
+      ['As of', fmt.shortTs(c.as_of)],
+    ];
+    $('#tradeGrid').innerHTML = tradeItems.map(([n, v]) => `
+      <div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v ?? '—'}</div></div>
+    `).join('');
+  } catch (e) {
+    console.warn('engine', e);
+    alert(`Could not load ${upper}: ${e.message}`);
+  }
+}
+
+async function loadReasoning() {
+  const sym = ($('#symbolPicker').value || '').toUpperCase().trim();
   if (!sym) return;
-  // re-clicking the same row toggles it off
-  applySelection(state.selected && state.selected.toUpperCase() === sym.toUpperCase() ? null : sym);
-});
-
-function renderSparkline(history) {
-  if (!history || !history.length) return '<div class="dd-loading">No history.</div>';
-  const w = 1000, h = 70, pad = 4;
-  const xs = history.map((_, i) => pad + (i * (w - 2 * pad)) / Math.max(history.length - 1, 1));
-  const ys = history.map(p => p.close);
-  const min = Math.min(...ys), max = Math.max(...ys);
-  const span = (max - min) || 1;
-  const yFor = (v) => h - pad - ((v - min) / span) * (h - 2 * pad);
-  const d = history.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xs[i].toFixed(1)} ${yFor(p.close).toFixed(1)}`).join(' ');
-  const last = history[history.length - 1].close;
-  const first = history[0].close;
-  const up = last >= first;
-  const stroke = up ? 'var(--up)' : 'var(--down)';
-  const fill = up ? 'rgba(34,197,94,.10)' : 'rgba(239,68,68,.10)';
-  const area = `${d} L ${xs[xs.length-1].toFixed(1)} ${h-pad} L ${xs[0].toFixed(1)} ${h-pad} Z`;
-  return `
-    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img"
-         aria-label="Last ${history.length} close prices">
-      <path d="${area}" fill="${fill}" stroke="none"></path>
-      <path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6"></path>
-    </svg>`;
-}
-
-async function loadDeepDive(symbol) {
   try {
-    const d = await cachedFetch('/api/symbol/' + encodeURIComponent(symbol), 60_000);
-    $('ddAsOf').textContent = 'as of ' + fmtDate(d.as_of);
-    const pct = d.prob_up;
-    const pctTxt = pct == null ? '--' : (pct * 100).toFixed(1) + '%';
-    const pctCls = pct == null ? '' : (pct >= 0.5 ? 'up' : 'down');
-    const conf = d.confidence;
-    const confTxt = conf == null ? '--' : (conf * 100).toFixed(1) + '%';
-    const last = d.last_close;
-    const chg = d.change;
-    const chgPct = d.change_percent;
-    const chgCls = chg == null ? '' : (chg >= 0 ? 'up' : 'down');
-    $('ddBody').innerHTML = `
-      <div class="deepdive-grid">
-        <div class="dd-card">
-          <div class="lbl">P(UP) — model probability</div>
-          <div class="val ${pctCls}">${pctTxt}</div>
-          <div class="dd-bar"><span class="${pctCls}" style="width:${pct != null ? (pct * 100).toFixed(1) : 0}%"></span></div>
-          <div class="sub">${d.rank != null ? 'rank #' + d.rank : 'rank not available'}</div>
-        </div>
-        <div class="dd-card">
-          <div class="lbl">Confidence (|P(UP) − 0.5| × 2)</div>
-          <div class="val">${confTxt}</div>
-          <div class="dd-bar"><span class="${pctCls || 'up'}" style="width:${conf != null ? (conf * 100).toFixed(1) : 0}%"></span></div>
-          <div class="sub">${conf != null && conf >= 0.10 ? 'high confidence' : (conf == null ? 'n/a' : 'low confidence')}</div>
-        </div>
-        <div class="dd-card">
-          <div class="lbl">Last close</div>
-          <div class="val">${last != null ? Number(last).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}</div>
-          <div class="sub ${chgCls}">${fmtSigned(chg)} (${fmtSignedPct(chgPct)}) vs previous close</div>
-        </div>
-        <div class="dd-card">
-          <div class="lbl">Day OHLC</div>
-          <div class="val" style="font-size:14px;">
-            O ${d.open  != null ? Number(d.open ).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'} ·
-            H ${d.high != null ? Number(d.high).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'} ·
-            L ${d.low  != null ? Number(d.low ).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
-          </div>
-          <div class="sub">Volume ${fmtInt(d.volume)}</div>
-        </div>
-        <div class="dd-card">
-          <div class="lbl">52-week range</div>
-          <div class="val" style="font-size:14px;">
-            ${d.high_52w != null ? Number(d.high_52w).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
-            &nbsp;–&nbsp;
-            ${d.low_52w != null ? Number(d.low_52w).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
-          </div>
-          <div class="sub">252-session window</div>
-        </div>
-        <div class="dd-card">
-          <div class="lbl">SMA-20 / SMA-50</div>
-          <div class="val" style="font-size:14px;">
-            ${d.sma_20 != null ? Number(d.sma_20).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
-            &nbsp;/&nbsp;
-            ${d.sma_50 != null ? Number(d.sma_50).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
-          </div>
-          <div class="sub">simple moving average of closes</div>
-        </div>
-        <div class="dd-spark">
-          <div class="lbl">Last ${d.history.length} sessions · close price</div>
-          ${renderSparkline(d.history)}
-        </div>
-      </div>
-      <div class="dd-foot">Source: ${d.source} · computed on the fly from <code>nifty100_ohlcv.parquet</code>. No model retraining.</div>
-    `;
+    const r = await api.reasoning(sym);
+    $('#reasoningBlock').classList.remove('hidden');
+    $('#reasoningList').innerHTML = (r.bullets || []).map(b => `
+      <li class="g-reason__item g-reason__item--${b.tone}">
+        <span class="g-tag">${b.tag}</span>
+        <span>${b.text}</span>
+      </li>
+    `).join('') || '<li class="g-empty">No reasoning available.</li>';
   } catch (e) {
-    $('ddBody').innerHTML = '<div class="dd-error">Could not load deep-dive: ' + e.message + '</div>';
+    console.warn('reasoning', e);
   }
 }
 
-// Tab visibility debounce — pause heavy pollers when the tab is hidden.
-let pollers = [tickClock, tickFreshness, tickNifty, loadSignal, loadScreen, loadQuotes];
-function startPolling() {
-  pollers.forEach((fn, i) => setInterval(fn, [1000, 30000, 30000, 60000, 60000, 30000][i]));
+/* ----- symbol picker datalist ----- */
+async function loadSymbolList() {
+  try {
+    const all = await api.scores(102);
+    const symbols = (all.scores || []).map(s => s.symbol).sort();
+    $('#symbolList').innerHTML = symbols.map(s => `<option value="${s}">`).join('');
+  } catch (e) {
+    console.warn('symbol list', e);
+  }
 }
-document.addEventListener('visibilitychange', () => {
-  // lightweight: just re-tick on resume (intervals are already running; this
-  // covers the case where the user re-focuses after a long idle).
-  if (!document.hidden) pollers.forEach(fn => { try { fn(); } catch (e) {} });
-});
 
-// Wire the banner dismiss button (one-time)
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = $('freshnessBannerClose');
-  if (btn) btn.addEventListener('click', hideFreshnessBanner);
-});
+/* ----- freshness banner ----- */
+async function loadFreshness() {
+  try {
+    const f = await api.freshness();
+    const last = f.last_trading_day || f.last_date || f.data_date;
+    if (!last) return;
+    const age = (Date.now() - new Date(last).getTime()) / 86400000;
+    if (age > 1.5) {
+      $('#staleBanner').textContent = `Heads up: price data is from ${fmt.shortTs(last)} (${age.toFixed(0)} days old). Signals are using a stale snapshot.`;
+      $('#staleBanner').classList.remove('hidden');
+    }
+  } catch (e) {
+    console.warn('freshness', e);
+  }
+}
 
-(async () => {
-  await Promise.all([loadSignal(), loadScreen(), loadPerf(), tickClock(), tickFreshness(), tickNifty(), loadQuotes()]);
-  startPolling();
-})();
+/* ----- server time ----- */
+async function loadServerTime() {
+  try {
+    const n = await api.now();
+    $('#serverTime').textContent = new Date(n.server_time || Date.now()).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+  } catch (e) {
+    $('#serverTime').textContent = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+  }
+}
+
+/* ----- tabs ----- */
+function setupTabs() {
+  $$('#screenerTabs .g-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#screenerTabs .g-tab').forEach(b => b.classList.remove('g-tab--active'));
+      btn.classList.add('g-tab--active');
+      loadScreener(btn.dataset.dir);
+    });
+  });
+  // Detail page tabs
+  $$('#detail .g-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      $$('#detail .g-tab').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      $$('#detail .g-tabpanel').forEach(p => p.classList.toggle('is-active', p.dataset.panel === tab));
+    });
+  });
+}
+
+/* ----- STOCK DETAIL page ----- */
+async function openDetail(sym) {
+  const upper = (sym || $('#symbolPicker').value || '').toUpperCase().trim();
+  if (!upper) return;
+  try {
+    const [snap, card, reason] = await Promise.all([
+      api.technicals(upper),
+      api.symbol(upper),
+      api.reasoning(upper).catch(() => null),
+    ]);
+    $('#detail').classList.remove('hidden');
+    $('#detailTitle').textContent = `${snap.symbol} — Stock Detail`;
+    $('#dSymbol').textContent = snap.symbol;
+    $('#dSub').textContent = `${snap.sector} · as of ${fmt.shortTs(snap.as_of)}`;
+
+    const s = card.scores;
+    let action = 'HOLD';
+    if (s.overall >= 70) action = 'STRONG BUY';
+    else if (s.overall >= 60) action = 'BUY';
+    else if (s.overall <= 30) action = 'STRONG SELL';
+    else if (s.overall <= 40) action = 'SELL';
+    $('#dAction').textContent = action;
+    $('#dAction').className = 'g-badge ' + (action.includes('BUY') ? 'g-badge--bull' : action.includes('SELL') ? 'g-badge--bear' : 'g-badge--neutral');
+    const trend = snap.technicals.trend || '—';
+    $('#dTrend').textContent = trend;
+    $('#dTrend').className = 'g-badge ' + (trend.includes('Up') ? 'g-badge--bull' : trend.includes('Down') ? 'g-badge--bear' : 'g-badge--neutral');
+
+    // ---------- OVERVIEW ----------
+    const overviewKpis = [
+      ['CMP', fmt.money(snap.last_close)],
+      ['Change', snap.change_pct == null ? '—' : (snap.change_pct >= 0 ? '+' : '') + snap.change_pct.toFixed(2) + '%'],
+      ['AI Score', s.ai.toFixed(1) + '/100'],
+      ['Overall', s.overall.toFixed(1) + '/100'],
+      ['Confidence', card.confidence_pct == null ? '—' : card.confidence_pct.toFixed(1) + '%'],
+      ['Action', action],
+      ['Sector', snap.sector],
+      ['Trend', trend],
+    ];
+    $('#dOverviewKpis').innerHTML = overviewKpis.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v ?? '—'}</div></div>`
+    ).join('');
+
+    const levels = [
+      ['Support 1', fmt.money(snap.technicals.support_1)],
+      ['Support 2', fmt.money(snap.technicals.support_2)],
+      ['Resistance 1', fmt.money(snap.technicals.resistance_1)],
+      ['Resistance 2', fmt.money(snap.technicals.resistance_2)],
+      ['20d Low', fmt.money(snap.technicals.low_20d)],
+      ['20d High', fmt.money(snap.technicals.high_20d)],
+      ['52w Low', fmt.money(snap.ranges.low_52w)],
+      ['52w High', fmt.money(snap.ranges.high_52w)],
+      ['Breakout', snap.technicals.breakout || '—'],
+    ];
+    $('#dLevels').innerHTML = levels.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v ?? '—'}</div></div>`
+    ).join('');
+
+    $('#dReasoning').innerHTML = (reason && reason.bullets || []).map(b => `
+      <li class="g-reason__item g-reason__item--${b.tone}">
+        <span class="g-tag">${b.tag}</span><span>${b.text}</span>
+      </li>
+    `).join('') || '<li class="g-empty">No reasoning available.</li>';
+
+    // ---------- TECHNICALS ----------
+    const t = snap.technicals;
+    const ma = [
+      ['EMA 20', fmt.money(t.ema_20), t.above_ema_20 ? 'Above' : 'Below'],
+      ['EMA 50', fmt.money(t.ema_50), t.above_ema_50 ? 'Above' : 'Below'],
+      ['EMA 200', fmt.money(t.ema_200), t.above_ema_200 ? 'Above' : 'Below'],
+      ['SMA 20', fmt.money(t.sma_20)],
+      ['SMA 50', fmt.money(t.sma_50)],
+      ['SMA 200', fmt.money(t.sma_200)],
+    ];
+    $('#dMA').innerHTML = ma.map(([n, v, extra]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v ?? '—'}</div><div class="g-kpi__unit">${extra || ''}</div></div>`
+    ).join('');
+
+    const rsiTone = (t.rsi_14 ?? 50) >= 70 ? 'bear' : (t.rsi_14 ?? 50) <= 30 ? 'bull' : 'neutral';
+    const macdTone = (t.macd_hist ?? 0) >= 0 ? 'bull' : 'bear';
+    const osc = [
+      ['RSI 14', t.rsi_14 == null ? '—' : t.rsi_14.toFixed(1), rsiTone],
+      ['MACD', t.macd == null ? '—' : t.macd.toFixed(3)],
+      ['MACD Signal', t.macd_signal == null ? '—' : t.macd_signal.toFixed(3)],
+      ['MACD Hist', t.macd_hist == null ? '—' : t.macd_hist.toFixed(3), macdTone],
+      ['Stoch %K', t.stoch_k == null ? '—' : t.stoch_k.toFixed(1)],
+      ['Stoch %D', t.stoch_d == null ? '—' : t.stoch_d.toFixed(1)],
+      ['+DI', t.plus_di == null ? '—' : t.plus_di.toFixed(1)],
+      ['-DI', t.minus_di == null ? '—' : t.minus_di.toFixed(1)],
+    ];
+    $('#dOscillators').innerHTML = osc.map(([n, v, tone]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm ${tone ? 'g-tag--' + tone : ''}">${v ?? '—'}</div></div>`
+    ).join('');
+
+    const adxTone = (t.adx ?? 0) >= 25 ? 'bull' : (t.adx ?? 0) >= 20 ? 'neutral' : 'bear';
+    const trendGrid = [
+      ['ADX', t.adx == null ? '—' : t.adx.toFixed(1), adxTone],
+      ['Trend', t.trend || '—'],
+      ['Breakout', t.breakout || '—'],
+      ['Above EMA20', t.above_ema_20 ? 'Yes' : 'No'],
+      ['Above EMA50', t.above_ema_50 ? 'Yes' : 'No'],
+      ['Above EMA200', t.above_ema_200 ? 'Yes' : 'No'],
+    ];
+    $('#dTrendGrid').innerHTML = trendGrid.map(([n, v, tone]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm ${tone ? 'g-tag--' + tone : ''}">${v ?? '—'}</div></div>`
+    ).join('');
+
+    const vol = [
+      ['ATR 14', fmt.money(t.atr_14)],
+      ['Volatility 20d', t.volatility_20d == null ? '—' : (t.volatility_20d * 100).toFixed(2) + '%'],
+      ['Volume Ratio 20d', t.volume_ratio_20d == null ? '—' : t.volume_ratio_20d.toFixed(2) + 'x'],
+      ['Volume Surge', t.volume_surge == null ? '—' : t.volume_surge.toFixed(2) + 'x'],
+      ['Avg Vol 5d', fmt.int(t.avg_volume_5d)],
+      ['Avg Vol 20d', fmt.int(t.avg_volume_20d)],
+      ['BB Width', t.bb_width == null ? '—' : (t.bb_width * 100).toFixed(2) + '%'],
+      ['BB Position', t.bb_position == null ? '—' : (t.bb_position * 100).toFixed(0) + '%'],
+      ['OBV Norm', t.obv_normalised == null ? '—' : t.obv_normalised.toFixed(1)],
+      ['Last Volume', fmt.int(snap.last_volume)],
+    ];
+    $('#dVolatility').innerHTML = vol.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v ?? '—'}</div></div>`
+    ).join('');
+
+    // ---------- FUNDAMENTALS ----------
+    const fund = snap.fundamentals || {};
+    const fundItems = [
+      ['Market Cap', fund.market_cap],
+      ['PE', fund.pe],
+      ['Forward PE', fund.forward_pe],
+      ['PB Ratio', fund.pb_ratio],
+      ['ROE', fund.roe],
+      ['ROCE', fund.roce],
+      ['Debt / Equity', fund.debt_to_equity],
+      ['EPS Growth', fund.eps_growth],
+      ['Sales Growth', fund.sales_growth],
+      ['Profit Growth', fund.profit_growth],
+      ['Promoter Holding', fund.promoter_holding],
+      ['FII Holding', fund.fii_holding],
+      ['DII Holding', fund.dii_holding],
+      ['Dividend Yield', fund.dividend_yield],
+      ['Free Cash Flow', fund.free_cash_flow],
+    ];
+    $('#dFundamentals').innerHTML = fundItems.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v == null ? '—' : v}</div></div>`
+    ).join('');
+
+    // ---------- AI ANALYSIS ----------
+    const aiFactors = [
+      ['AI', s.ai], ['Technical', s.technical], ['Fundamental', s.fundamental],
+      ['Momentum', s.momentum], ['Risk', s.risk], ['Valuation', s.valuation], ['Overall', s.overall],
+    ];
+    $('#dAiFactors').innerHTML = aiFactors.map(([n, v]) => {
+      const cls = v >= 70 ? 'bull' : v <= 30 ? 'bear' : 'neutral';
+      return `<div class="g-card g-card--pad g-score">
+        <div class="g-score__name">${n}</div>
+        <div class="g-score__val ${cls}">${v.toFixed(1)}</div>
+        <div class="g-bar"><div class="g-bar__fill ${cls}" style="width:${v.toFixed(1)}%"></div></div>
+      </div>`;
+    }).join('');
+
+    const k = card.kpis;
+    const aiKpis = [
+      ['AI Conviction', s.ai.toFixed(1) + '/100'],
+      ['Risk/Reward', card.trade_plan && card.trade_plan.risk_reward ? '1:' + card.trade_plan.risk_reward.toFixed(2) : '—'],
+      ['Win Probability', k.win_probability_pct.toFixed(1) + '%'],
+      ['Expected Return', k.expected_return_pct.toFixed(2) + '%'],
+      ['Downside Risk', k.downside_risk_pct.toFixed(2) + '%'],
+      ['Trend Strength', k.trend_strength.toFixed(1) + '/100'],
+      ['Relative Strength', k.relative_strength.toFixed(1) + '/100'],
+      ['Sector Strength', k.sector_strength.toFixed(1) + '/100'],
+      ['Institutional Activity', k.institutional_activity.toFixed(1) + '/100'],
+      ['Delivery Volume', k.delivery_volume_strength.toFixed(1) + '/100'],
+      ['Liquidity', k.liquidity_score + '/100'],
+      ['Confidence', k.confidence_pct.toFixed(1) + '%'],
+    ];
+    $('#dAiKpis').innerHTML = aiKpis.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v}</div></div>`
+    ).join('');
+
+    // ---------- RISK ----------
+    const r = snap.risk || {};
+    const riskGrid = [
+      ['ATR (14)', fmt.money(r.atr)],
+      ['20d Volatility', r.volatility_20d == null ? '—' : (r.volatility_20d * 100).toFixed(2) + '%'],
+      ['Downside Risk %', r.downside_risk_pct == null ? '—' : r.downside_risk_pct.toFixed(2) + '%'],
+      ['RS Rank', t.relative_strength_rank_pct == null ? '—' : t.relative_strength_rank_pct.toFixed(0) + '/100'],
+      ['Vol Rank', t.volume_rank_pct == null ? '—' : t.volume_rank_pct.toFixed(0) + '/100'],
+      ['Risk Score', s.risk.toFixed(1) + '/100'],
+    ];
+    $('#dRiskGrid').innerHTML = riskGrid.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v}</div></div>`
+    ).join('');
+
+    const tp = card.trade_plan || {};
+    const riskPlan = [
+      ['Stop Loss', fmt.money(tp.stop_loss)],
+      ['SL Distance', tp.entry_price && tp.stop_loss ? '₹' + (tp.entry_price - tp.stop_loss).toFixed(2) : '—'],
+      ['SL %', tp.entry_price && tp.stop_loss ? (((tp.stop_loss - tp.entry_price) / tp.entry_price) * 100).toFixed(2) + '%' : '—'],
+      ['Holding', tp.holding_period || '—'],
+      ['Risk Level', tp.risk_level || '—'],
+      ['Liquidity', k.liquidity_score + '/100'],
+    ];
+    $('#dRiskPlan').innerHTML = riskPlan.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v}</div></div>`
+    ).join('');
+
+    // ---------- TARGETS ----------
+    const targets = [
+      ['Entry', fmt.money(tp.entry_price)],
+      ['Stop Loss', fmt.money(tp.stop_loss)],
+      ['Target 1', fmt.money(tp.target_1)],
+      ['Target 2', fmt.money(tp.target_2)],
+      ['Risk/Reward', tp.risk_reward ? '1:' + tp.risk_reward.toFixed(2) : '—'],
+      ['Holding', tp.holding_period || '—'],
+    ];
+    $('#dTargets').innerHTML = targets.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v}</div></div>`
+    ).join('');
+
+    const w52 = [
+      ['52w High', fmt.money(snap.ranges.high_52w)],
+      ['52w Low', fmt.money(snap.ranges.low_52w)],
+      ['% to 52w High', snap.ranges.target_52w_pct == null ? '—' : '+' + snap.ranges.target_52w_pct.toFixed(2) + '%'],
+      ['% from 52w Low', snap.ranges.dist_from_52w_low_pct == null ? '—' : '+' + snap.ranges.dist_from_52w_low_pct.toFixed(2) + '%'],
+      ['20d High', fmt.money(t.high_20d)],
+      ['20d Low', fmt.money(t.low_20d)],
+    ];
+    $('#d52w').innerHTML = w52.map(([n, v]) =>
+      `<div class="g-kpi g-kpi--mini"><div class="g-kpi__label">${n}</div><div class="g-kpi__value g-kpi__value--sm">${v}</div></div>`
+    ).join('');
+
+    // Scroll into view
+    document.getElementById('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    console.warn('detail', e);
+    alert(`Could not load detail for ${upper}: ${e.message}`);
+  }
+}
+
+/* ----- wire up ----- */
+function init() {
+  loadKpis();
+  loadMarket();
+  loadScreener('ALL');
+  loadSymbolList();
+  loadFreshness();
+  loadServerTime();
+  setupTabs();
+  $('#loadSymbol').addEventListener('click', () => loadEngine($('#symbolPicker').value));
+  $('#loadReasoning').addEventListener('click', loadReasoning);
+  $('#openDetail').addEventListener('click', () => openDetail($('#symbolPicker').value));
+  $('#symbolPicker').addEventListener('keydown', e => { if (e.key === 'Enter') loadEngine(e.target.value); });
+  setInterval(loadServerTime, 60000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>

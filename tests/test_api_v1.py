@@ -176,3 +176,68 @@ def test_unversioned_routes_still_work(client):
     ):
         r = client.get(path)
         assert r.status_code == 200, f"{path} returned {r.status_code}"
+
+
+        def test_v1_access_lists_buy_decision_engine_routes(client):
+            """The BUY DECISION ENGINE v1 routes are advertised in /api/v1/access."""
+            r = client.get("/api/v1/access")
+            paths = {route["path"] for route in r.json()["routes"]}
+            for required in (
+                "/api/v1/scores",
+                "/api/v1/scores/{symbol}",
+                "/api/v1/screener",
+                "/api/v1/market",
+                "/api/v1/kpis",
+                "/api/v1/reasoning/{symbol}",
+                "/api/v1/technicals/{symbol}",
+            ):
+                assert required in paths, f"missing BUY DECISION ENGINE route: {required}"
+
+
+        def test_v1_technicals_known_symbol(client):
+            """GET /api/v1/technicals/RELIANCE returns the full technicals snapshot."""
+            r = client.get("/api/v1/technicals/RELIANCE")
+            assert r.status_code == 200
+            body = r.json()
+            assert body["api_version"] == "v1"
+            assert "tier_meta" in body
+            assert "disclaimer" in body
+            assert body["symbol"] == "RELIANCE"
+            assert "technicals" in body
+            t = body["technicals"]
+            # All required technicals fields present (or null)
+            for key in (
+                "ema_20", "ema_50", "ema_200",
+                "rsi_14", "macd", "macd_signal", "macd_hist",
+                "adx", "atr_14", "bb_upper", "bb_lower", "bb_width", "bb_position",
+                "trend", "breakout", "volume_surge",
+                "support_1", "support_2", "resistance_1", "resistance_2",
+                "relative_strength_rank_pct", "volume_rank_pct",
+            ):
+                assert key in t, f"missing technicals key: {key}"
+            # Ranges block
+            assert "ranges" in body
+            assert "high_52w" in body["ranges"]
+            assert "low_52w" in body["ranges"]
+            # Fundamentals block (mostly null in current dataset, but present)
+            assert "fundamentals" in body
+            assert body["fundamentals"]["_source"]  # honest disclosure
+
+
+        def test_v1_technicals_unknown_symbol_returns_404(client):
+            """GET /api/v1/technicals/UNKNOWN returns 404 with the v1 envelope."""
+            r = client.get("/api/v1/technicals/ZZZZZZZZ")
+            assert r.status_code == 404
+            body = r.json()
+            assert body["api_version"] == "v1"
+            assert "error" in body
+            assert "tier_meta" in body
+
+
+        def test_v1_technicals_case_insensitive(client):
+            """Symbol lookup is case-insensitive (URL path is uppercased internally)."""
+            r = client.get("/api/v1/technicals/reliance")
+            # FastAPI routes are case-sensitive by default; the helper uppercases,
+            # so lower-case still resolves.
+            assert r.status_code == 200
+            assert r.json()["symbol"] == "RELIANCE"
