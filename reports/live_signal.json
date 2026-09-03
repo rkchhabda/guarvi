@@ -1,0 +1,726 @@
+{
+  "generated": "2026-08-30 14:23:58",
+  "as_of": "2026-08-23",
+  "universe": "NIFTY100",
+  "disclaimer": "Research/education tool only. The directional signal is small (~2 bps/day gross) and not profitable net of Indian retail costs; naive equal-weight NIFTY100 has historically been the better strategy. Not SEBI-registered investment advice.",
+  "market_breadth_prob": 0.4915,
+  "direction": "DOWN",
+  "n_symbols": 102,
+  "freshness": "no live data; using parquet as_of",
+  "symbols": [
+    {
+      "symbol": "MAXHEALTH",
+      "prob_up": 0.5376,
+      "rank": 1,
+      "last_close": 990.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "IDEA",
+      "prob_up": 0.5348,
+      "rank": 2,
+      "last_close": 14.07,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ULTRACEMCO",
+      "prob_up": 0.5209,
+      "rank": 3,
+      "last_close": 11504.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "SBILIFE",
+      "prob_up": 0.5202,
+      "rank": 4,
+      "last_close": 1761.8,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "VEDL",
+      "prob_up": 0.5171,
+      "rank": 5,
+      "last_close": 277.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BRITANNIA",
+      "prob_up": 0.5169,
+      "rank": 6,
+      "last_close": 5311.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "SHREECEM",
+      "prob_up": 0.5157,
+      "rank": 7,
+      "last_close": 24020.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "GODREJCP",
+      "prob_up": 0.5153,
+      "rank": 8,
+      "last_close": 928.9,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "LT",
+      "prob_up": 0.515,
+      "rank": 9,
+      "last_close": 4090.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HEROMOTOCO",
+      "prob_up": 0.5141,
+      "rank": 10,
+      "last_close": 5685.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "GRASIM",
+      "prob_up": 0.5127,
+      "rank": 11,
+      "last_close": 3288.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TATAMOTORS",
+      "prob_up": 0.5126,
+      "rank": 12,
+      "last_close": 314.4,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TMPV",
+      "prob_up": 0.5126,
+      "rank": 13,
+      "last_close": 314.4,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "SHRIRAMFIN",
+      "prob_up": 0.5116,
+      "rank": 14,
+      "last_close": 1119.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TATAPOWER",
+      "prob_up": 0.5098,
+      "rank": 15,
+      "last_close": 373.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "SIEMENS",
+      "prob_up": 0.5097,
+      "rank": 16,
+      "last_close": 4114.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "RELIANCE",
+      "prob_up": 0.5087,
+      "rank": 17,
+      "last_close": 1309.8,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "INDHOTEL",
+      "prob_up": 0.5076,
+      "rank": 18,
+      "last_close": 728.9,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "KOTAKBANK",
+      "prob_up": 0.5066,
+      "rank": 19,
+      "last_close": 401.45,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "NESTLEIND",
+      "prob_up": 0.5063,
+      "rank": 20,
+      "last_close": 1471.3,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HDFCLIFE",
+      "prob_up": 0.5062,
+      "rank": 21,
+      "last_close": 552.95,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "CHOLAFIN",
+      "prob_up": 0.5054,
+      "rank": 22,
+      "last_close": 1846.7,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BAJFINANCE",
+      "prob_up": 0.5053,
+      "rank": 23,
+      "last_close": 1077.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TCS",
+      "prob_up": 0.5052,
+      "rank": 24,
+      "last_close": 2284.1,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "AXISBANK",
+      "prob_up": 0.5043,
+      "rank": 25,
+      "last_close": 1236.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "DIVISLAB",
+      "prob_up": 0.5034,
+      "rank": 26,
+      "last_close": 8496.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "PNB",
+      "prob_up": 0.5031,
+      "rank": 27,
+      "last_close": 115.86,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TITAN",
+      "prob_up": 0.5021,
+      "rank": 28,
+      "last_close": 5079.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BAJAJHLDNG",
+      "prob_up": 0.5021,
+      "rank": 29,
+      "last_close": 11120.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BHARTIARTL",
+      "prob_up": 0.5014,
+      "rank": 30,
+      "last_close": 1935.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "POWERGRID",
+      "prob_up": 0.5012,
+      "rank": 31,
+      "last_close": 271.4,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "MARUTI",
+      "prob_up": 0.4997,
+      "rank": 32,
+      "last_close": 13620.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "VBL",
+      "prob_up": 0.4996,
+      "rank": 33,
+      "last_close": 428.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HINDALCO",
+      "prob_up": 0.4996,
+      "rank": 34,
+      "last_close": 1058.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ZYDUSLIFE",
+      "prob_up": 0.4992,
+      "rank": 35,
+      "last_close": 1103.8,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "LICI",
+      "prob_up": 0.4992,
+      "rank": 36,
+      "last_close": 421.85,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HAL",
+      "prob_up": 0.4988,
+      "rank": 37,
+      "last_close": 4906.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ONGC",
+      "prob_up": 0.4987,
+      "rank": 38,
+      "last_close": 236.55,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "M&M",
+      "prob_up": 0.4986,
+      "rank": 39,
+      "last_close": 3414.1,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BEL",
+      "prob_up": 0.4986,
+      "rank": 40,
+      "last_close": 409.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BHEL",
+      "prob_up": 0.4984,
+      "rank": 41,
+      "last_close": 411.4,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TORNTPHARM",
+      "prob_up": 0.4983,
+      "rank": 42,
+      "last_close": 4886.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BAJAJFINSV",
+      "prob_up": 0.4981,
+      "rank": 43,
+      "last_close": 2001.7,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "NTPC",
+      "prob_up": 0.4971,
+      "rank": 44,
+      "last_close": 339.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ICICIBANK",
+      "prob_up": 0.4965,
+      "rank": 45,
+      "last_close": 1415.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TATACHEM",
+      "prob_up": 0.4958,
+      "rank": 46,
+      "last_close": 626.95,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BOSCHLTD",
+      "prob_up": 0.4957,
+      "rank": 47,
+      "last_close": 48100.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ADANIENT",
+      "prob_up": 0.4953,
+      "rank": 48,
+      "last_close": 2998.6,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TVSMOTOR",
+      "prob_up": 0.495,
+      "rank": 49,
+      "last_close": 4363.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "AMBUJACEM",
+      "prob_up": 0.4944,
+      "rank": 50,
+      "last_close": 408.75,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ITC",
+      "prob_up": 0.4933,
+      "rank": 51,
+      "last_close": 269.7,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "NAUKRI",
+      "prob_up": 0.4928,
+      "rank": 52,
+      "last_close": 1349.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ADANIPORTS",
+      "prob_up": 0.4924,
+      "rank": 53,
+      "last_close": 1672.1,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ATGL",
+      "prob_up": 0.4918,
+      "rank": 54,
+      "last_close": 639.6,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "CANBK",
+      "prob_up": 0.4913,
+      "rank": 55,
+      "last_close": 127.3,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "JINDALSTEL",
+      "prob_up": 0.4909,
+      "rank": 56,
+      "last_close": 1149.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "WIPRO",
+      "prob_up": 0.4894,
+      "rank": 57,
+      "last_close": 181.31,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TATASTEEL",
+      "prob_up": 0.4892,
+      "rank": 58,
+      "last_close": 186.3,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TRENT",
+      "prob_up": 0.489,
+      "rank": 59,
+      "last_close": 2905.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "PFC",
+      "prob_up": 0.4889,
+      "rank": 60,
+      "last_close": 364.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "DRREDDY",
+      "prob_up": 0.4886,
+      "rank": 61,
+      "last_close": 1190.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "UNITDSPR",
+      "prob_up": 0.4874,
+      "rank": 62,
+      "last_close": 1555.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "INDUSINDBK",
+      "prob_up": 0.4865,
+      "rank": 63,
+      "last_close": 1018.4,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ADANIPOWER",
+      "prob_up": 0.486,
+      "rank": 64,
+      "last_close": 203.7,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "JSWENERGY",
+      "prob_up": 0.4857,
+      "rank": 65,
+      "last_close": 544.7,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ADANIENSOL",
+      "prob_up": 0.4852,
+      "rank": 66,
+      "last_close": 1555.1,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "IRFC",
+      "prob_up": 0.4843,
+      "rank": 67,
+      "last_close": 85.99,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "INFY",
+      "prob_up": 0.4842,
+      "rank": 68,
+      "last_close": 1130.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BPCL",
+      "prob_up": 0.4833,
+      "rank": 69,
+      "last_close": 311.9,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ETERNAL",
+      "prob_up": 0.4829,
+      "rank": 70,
+      "last_close": 327.15,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "DABUR",
+      "prob_up": 0.4827,
+      "rank": 71,
+      "last_close": 398.45,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TECHM",
+      "prob_up": 0.4823,
+      "rank": 72,
+      "last_close": 1584.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ABB",
+      "prob_up": 0.4817,
+      "rank": 73,
+      "last_close": 7504.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "SWIGGY",
+      "prob_up": 0.4815,
+      "rank": 74,
+      "last_close": 284.25,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "CIPLA",
+      "prob_up": 0.4813,
+      "rank": 75,
+      "last_close": 1437.9,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "EICHERMOT",
+      "prob_up": 0.4811,
+      "rank": 76,
+      "last_close": 8047.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "JSWSTEEL",
+      "prob_up": 0.481,
+      "rank": 77,
+      "last_close": 1327.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "MOTHERSON",
+      "prob_up": 0.4807,
+      "rank": 78,
+      "last_close": 169.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "INDIGO",
+      "prob_up": 0.4795,
+      "rank": 79,
+      "last_close": 5115.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "COALINDIA",
+      "prob_up": 0.4782,
+      "rank": 80,
+      "last_close": 406.9,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ASIANPAINT",
+      "prob_up": 0.4776,
+      "rank": 81,
+      "last_close": 2640.8,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HAVELLS",
+      "prob_up": 0.4776,
+      "rank": 82,
+      "last_close": 1268.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "APOLLOHOSP",
+      "prob_up": 0.4771,
+      "rank": 83,
+      "last_close": 8702.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "TATACONSUM",
+      "prob_up": 0.4769,
+      "rank": 84,
+      "last_close": 1062.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "SUNPHARMA",
+      "prob_up": 0.4755,
+      "rank": 85,
+      "last_close": 1910.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HDFCBANK",
+      "prob_up": 0.4754,
+      "rank": 86,
+      "last_close": 729.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HCLTECH",
+      "prob_up": 0.4747,
+      "rank": 87,
+      "last_close": 1322.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BAJAJ-AUTO",
+      "prob_up": 0.4743,
+      "rank": 88,
+      "last_close": 11800.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "LODHA",
+      "prob_up": 0.4738,
+      "rank": 89,
+      "last_close": 1258.4,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "DLF",
+      "prob_up": 0.4719,
+      "rank": 90,
+      "last_close": 689.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "RECLTD",
+      "prob_up": 0.4683,
+      "rank": 91,
+      "last_close": 327.9,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BAJAJHFL",
+      "prob_up": 0.4673,
+      "rank": 92,
+      "last_close": 84.05,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ADANIGREEN",
+      "prob_up": 0.4672,
+      "rank": 93,
+      "last_close": 1308.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "IOC",
+      "prob_up": 0.4659,
+      "rank": 94,
+      "last_close": 138.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "DMART",
+      "prob_up": 0.4648,
+      "rank": 95,
+      "last_close": 3940.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "CGPOWER",
+      "prob_up": 0.4619,
+      "rank": 96,
+      "last_close": 877.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HINDUNILVR",
+      "prob_up": 0.4586,
+      "rank": 97,
+      "last_close": 2030.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "PIDILITIND",
+      "prob_up": 0.4565,
+      "rank": 98,
+      "last_close": 1660.0,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "HUDCO",
+      "prob_up": 0.453,
+      "rank": 99,
+      "last_close": 187.53,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "ESCORTS",
+      "prob_up": 0.4524,
+      "rank": 100,
+      "last_close": 3097.3,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "BANKBARODA",
+      "prob_up": 0.4459,
+      "rank": 101,
+      "last_close": 241.5,
+      "as_of": "2026-08-23"
+    },
+    {
+      "symbol": "GAIL",
+      "prob_up": 0.4413,
+      "rank": 102,
+      "last_close": 173.75,
+      "as_of": "2026-08-23"
+    }
+  ]
+}

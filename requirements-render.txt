@@ -1,0 +1,14 @@
+# Minimal runtime deps for the Guarvi read-only FastAPI dashboard.
+# Heavy ML/data libs (xgboost, lightgbm, jugaad-data, growwapi, scikit-learn)
+# are NOT needed by web/main.py - they belong to the offline training pipeline.
+# Keeping this file lean keeps the Render free tier well under its 512 MB
+# memory limit and shortens cold-start time.
+
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pandas==2.2.3
+numpy==1.26.4
+pyarrow==18.1.0
+python-dotenv==1.0.1
+pyyaml==6.0.2

@@ -1,0 +1,39 @@
+# Indian retail trading cost model (configurable).
+#
+# These are the *default* figures used by the cost-aware backtest
+# (src.market_ml.backtest.compute_indian_retail_costs). All values can be
+# overridden via environment variables of the form:
+#   GUARVI_COST_BROKERAGE_PCT  GUARVI_COST_STT_SELL_PCT  GUARVI_COST_SLIPPAGE_BPS  ...
+# (the loader accepts both pct and bps forms — see src/market_ml/costs.py).
+#
+# Reference figures (delivery equity, 2024-2026 retail):
+#   - Brokerage: 0.03% of trade value, or Rs 20 per executed order, whichever is lower
+#     (zero-brokerage discount-brokers like Zerodha/Groww charge Rs 0 brokerage on delivery
+#      but still apply STT and exchange fees — this is the conservative default).
+#   - STT (Securities Transaction Tax) on sell side, delivery: 0.025% of sell value
+#   - Exchange transaction charge: 0.00325% of trade value (NSE, equity delivery)
+#   - SEBI charges: 0.0001% of trade value
+#   - Stamp duty: 0.015% on buy side (varies by state; 0.015% is the Maharashtra figure)
+#   - GST: 18% of brokerage (and of exchange txn + SEBI in some interpretations)
+#   - Slippage: configurable in basis points; default 5 bps per side (10 bps round-trip
+#     on the worst day of the year; 0 bps means "fills at exact close")
+
+costs:
+  brokerage_pct: 0.03          # % of trade value
+  brokerage_flat_inr: 20.0     # Rs per executed order (whichever is lower)
+  stt_sell_pct: 0.025          # % of sell value (delivery)
+  exchange_txn_pct: 0.00325    # % of trade value
+  sebi_charges_pct: 0.0001     # % of trade value
+  stamp_duty_buy_pct: 0.015    # % of buy value
+  gst_on_brokerage_pct: 18.0   # % of brokerage (and exchange txn in some models)
+  slippage_bps_per_side: 5.0   # basis points per side (5 bps = 0.05%)
+
+backtest:
+  long_decile: 1               # rank top 1 decile of P(UP) -> LONG
+  short_decile: 1              # rank bottom 1 decile of P(UP) -> SHORT
+  rebalance: daily             # daily | weekly
+  top_n: 10                    # absolute cap on leg size (overrides decile if smaller)
+  bottom_n: 10
+  initial_equity_inr: 1000000  # Rs 10 lakh (paper-portfolio scale)
+  risk_free_rate_pct: 6.0      # 6% annual, used for net Sharpe
+  trading_days_per_year: 252

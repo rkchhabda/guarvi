@@ -1,0 +1,33 @@
+# Data collection configuration.
+#
+# Symbols and date ranges are read from this file by the data loaders —
+# do not hardcode them in code.
+
+universe: nifty100
+symbols_file: config/nifty100_symbols.csv
+
+date_range:
+  start: "2019-01-01"
+  end: null  # null = today
+
+provider:
+  primary: jugaad-data
+  # Fallback when jugaad-data fails for a symbol. One of: none, yfinance.
+  fallback_provider: none
+  retries: 3
+  retry_delay_seconds: 2.0
+  timeout_seconds: 30
+
+# Groww API configuration for live data
+# Requires static IP whitelisted in Groww developer portal
+groww:
+  enabled: true
+  api_key: ""  # Set via environment variable GROWW_API_KEY
+  secret: ""   # Set via environment variable GROWW_SECRET
+  static_ip: ""  # Your static IP for API access
+  access_token: ""  # Generated from api_key + secret
+
+paths:
+  raw_dir: data/raw/nse
+  interim_dir: data/interim/nse
+  live_dir: data/live/nse

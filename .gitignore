@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Secrets - NEVER commit
+.env
+.env.*
+!.env.example
+
+# Heavy data + training artefacts the dashboard does not need
+# (kept on disk for offline training; excluded from the public repo).
+# Files Render needs at build time are *not* ignored:
+#   data/processed/predictions.csv
+#   data/processed/nifty100_ohlcv.parquet
+data/raw/
+data/external/
+data/interim/
+data/processed/nifty100_features.parquet
+data/processed/nifty100_features.csv
+data/processed/NIFTY50_features.csv
+data/processed/NIFTY50_labels.csv
+data/processed/nifty100_ohlcv.csv
+data/processed/nifty100_ohlcv_quality_report.md
+models/
+
+# Phase reports (voluminous, only live_signal.json ships to the web)
+reports/backtest_*
+reports/ohlc_anomalies.csv
+reports/data_snapshot.*
+reports/feature_quality_report.md
+reports/feature_schema.json
+reports/NIFTY100_evaluation.*
+reports/NIFTY50_evaluation.*
+reports/phase1b_*
+reports/phase1c_*
+reports/phase2_*
+reports/phase3_*
+reports/phase4_*
+reports/phase5_*
+reports/phase6_*
+reports/phase7_*
+reports/phase8_*
+reports/phase9_*
+reports/xgboost_predictions.csv
+reports/*.log
+reports/*.err
+
+# Build / test helpers
+fix_indent.py
+pytest_last_run.txt
+
+# Live data the collector writes at runtime
+data/live/
+
+# Local env files
+.python-version

@@ -1,0 +1,37 @@
+# Render Blueprint — Guarvi Signal Portal (read-only FastAPI dashboard)
+#
+# How to use:
+#   1. Push this repo to GitHub.
+#   2. In Render dashboard -> "New" -> "Blueprint" -> point to this repo.
+#   3. Render reads render.yaml, creates the service, builds, deploys.
+#
+# Alternative (manual):
+#   Render -> New -> Web Service -> connect repo -> pick "Python" environment
+#   and use the Build Command / Start Command shown below.
+
+services:
+  - type: web
+    name: guarvi-portal
+    runtime: python
+    plan: free              # Free tier. Sleeps after 15 min idle. Cold start ~30-50s.
+    region: oregon          # Closest free region to India; Singapore is paid-only.
+    branch: main
+    autoDeploy: true
+    buildCommand: "bash render_build.sh && pip install --upgrade pip && pip install -r requirements-render.txt"
+    startCommand: "uvicorn web.main:app --host 0.0.0.0 --port $PORT --workers 1"
+    healthCheckPath: "/api/now"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"     # 3.14 has no prebuilt manylinux wheels on Render yet.
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: GUARVI_DATA_DIR
+        value: "./data"
+      - key: GUARVI_REPORTS_DIR
+        value: "./reports"
+    # Disk is intentionally NOT mounted: free-tier disks are paid. The
+    # dashboard reads only the parquet + JSON bundled in the repo image.
+    # If you need to write live data, upgrade to Starter and add a `disk`
+    # block with mountPath pointing at ./data.

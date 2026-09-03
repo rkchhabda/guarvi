@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guarvi · NIFTY 100 Directional Signal</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --bg-2: #0f1521;
+    --card: #131a28;
+    --card-2: #182132;
+    --ink: #e7ecf3;
+    --ink-2: #c9d1dc;
+    --mut: #8a93a4;
+    --up: #22c55e;
+    --up-2: #16a34a;
+    --down: #ef4444;
+    --down-2: #b91c1c;
+    --acc: #3b82f6;
+    --acc-2: #1d4ed8;
+    --gold: #f59e0b;
+    --bd: #1f2a3d;
+    --bd-2: #2a3a55;
+    --shadow-soft: 0 1px 0 rgba(255,255,255,.04) inset, 0 4px 16px rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--ink); }
+
+  /* ---------- Stale-data banner ---------- */
+  .stale-banner {
+    display: flex; align-items: center; gap: 12px;
+    margin: 14px 24px 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, rgba(245,158,11,.18), rgba(245,158,11,.06));
+    border: 1px solid rgba(245,158,11,.55);
+    color: #fde68a;
+    font-size: 13.5px;
+    box-shadow: 0 0 0 1px rgba(245,158,11,.15) inset, 0 2px 8px rgba(0,0,0,.25);
+  }
+  .stale-banner .sb-icon {
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(245,158,11,.25); color: #fbbf24; font-size: 14px;
+  }
+  .stale-banner .sb-text { flex: 1; line-height: 1.4; }
+  .stale-banner .sb-text b { color: #fcd34d; }
+  .stale-banner .sb-close {
+    background: transparent; border: 0; color: #fde68a;
+    cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 6px;
+  }
+  .stale-banner .sb-close:hover { background: rgba(245,158,11,.15); }
+  .stale-banner.hidden { display: none; }
+  body {
+    margin: 0;
+    font: 14.5px/1.5 -apple-system, Segoe UI, Inter, Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #1a2540 0%, transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, #0e1a2e 0%, transparent 55%),
+      var(--bg);
+    color: var(--ink);
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 18px;
+    padding: 12px 24px;
+    background: rgba(11, 15, 23, 0.78);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--bd);
+  }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #22c55e);
+    display: grid; place-items: center; font-weight: 800; color: #0b0f17;
+    font-size: 16px; box-shadow: var(--shadow-soft);
+  }
+  .brand h1 { margin: 0; font-size: 18px; letter-spacing: .2px; }
+  .brand .sub { color: var(--mut); font-size: 12.5px; }
+  .spacer { flex: 1; }
+  .live-time { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
+  .live-time .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+                    background: var(--down); margin-right: 6px; box-shadow: 0 0 8px var(--down); }
+  .live-time .dot.on { background: var(--up); box-shadow: 0 0 8px var(--up); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .nifty-pill {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    padding: 6px 12px; border: 1px solid var(--bd-2); border-radius: 10px;
+    background: var(--card-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .nifty-pill .label { color: var(--mut); font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; }
+  .nifty-pill .val { font-size: 18px; font-weight: 700; }
+  .nifty-pill .chg { font-size: 12.5px; }
+  .nifty-pill.up   .chg { color: var(--up); }
+  .nifty-pill.down .chg { color: var(--down); }
+
+  /* ---------- Disclaimer ---------- */
+  .disc {
+    background: linear-gradient(90deg, #3a2a06 0%, #2a1f04 100%);
+    color: #f8d680; padding: 9px 24px; font-size: 12.5px;
+    border-bottom: 1px solid #5c4300;
+  }
+  .disc b { color: #fde2a3; }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 22px; }
+
+  /* ---------- KPI cards ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
+    border: 1px solid var(--bd); border-radius: 14px;
+    padding: 14px 16px; box-shadow: var(--shadow-soft);
+    position: relative; overflow: hidden;
+  }
+  .kpi .klabel { color: var(--mut); font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; }
+  .kpi .kval { font-size: 30px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .kpi .kdelta { font-size: 12px; color: var(--mut); margin-top: 2px; }
+  .kpi .kdelta.good { color: var(--up); }
+  .kpi .kdelta.bad  { color: var(--down); }
+  .kpi .kbar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+               background: linear-gradient(90deg, var(--acc), transparent); }
+  .kpi.signal .kval.up   { color: var(--up); }
+  .kpi.signal .kval.down { color: var(--down); }
+  .kpi.signal .kval.flat { color: var(--gold); }
+  .kpi .badge { display: inline-block; padding: 2px 8px; border-radius: 999px;
+                font-size: 11px; font-weight: 700; letter-spacing: .5px; }
+  .kpi .badge.up   { background: rgba(34,197,94,.12); color: var(--up); border: 1px solid rgba(34,197,94,.35); }
+  .kpi .badge.down { background: rgba(239,68,68,.12); color: var(--down); border: 1px solid rgba(239,68,68,.35); }
+  .kpi .badge.flat { background: rgba(245,158,11,.12); color: var(--gold); border: 1px solid rgba(245,158,11,.35); }
+
+  /* ---------- Section ---------- */
+  .section { margin-top: 18px; background: var(--card);
+             border: 1px solid var(--bd); border-radius: 14px; padding: 16px;
+             box-shadow: var(--shadow-soft); }
+  .section h2 { margin: 0 0 12px; font-size: 14px; color: var(--ink-2);
+                text-transform: uppercase; letter-spacing: 1.5px; }
+  .section h2 .pill { float: right; font-size: 11.5px; }
+
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px;
+          background: #1c2538; border: 1px solid var(--bd-2); color: var(--ink-2); }
+  .pill.up   { color: var(--up);  border-color: rgba(34,197,94,.35);  background: rgba(34,197,94,.08); }
+  .pill.down { color: var(--down);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.08); }
+  .pill.flat { color: var(--gold);border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.08); }
+
+  /* ---------- Screener layout ---------- */
+  .screener-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .search { position: relative; flex: 1; min-width: 220px; }
+  .search input {
+    width: 100%; padding: 10px 12px 10px 36px;
+    background: var(--bg-2); border: 1px solid var(--bd-2); color: var(--ink);
+    border-radius: 10px; font-size: 14px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .search input::placeholder { color: var(--mut); }
+  .search input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+                width: 16px; height: 16px; color: var(--mut); }
+  .filter { display: flex; gap: 6px; }
+  .filter button {
+    background: var(--bg-2); color: var(--ink-2); border: 1px solid var(--bd-2);
+    border-radius: 8px; padding: 9px 12px; cursor: pointer; font-size: 13px;
+    transition: all .15s;
+  }
+  .filter button:hover { border-color: var(--acc); color: var(--ink); }
+  .filter button.active { background: var(--acc); color: #fff; border-color: var(--acc); }
+  .count { color: var(--mut); font-size: 12.5px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .subcard { background: var(--bg-2); border: 1px solid var(--bd); border-radius: 12px;
+             padding: 12px; }
+  .subcard h3 { margin: 0 0 8px; font-size: 12.5px; color: var(--mut);
+                text-transform: uppercase; letter-spacing: 1px; }
+  .subcard.top h3 { color: var(--up); }
+  .subcard.bot h3 { color: var(--down); }
+
+  /* ---------- Table ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--bd); }
+  th { color: var(--mut); font-weight: 600; font-size: 11.5px;
+       text-transform: uppercase; letter-spacing: .8px; }
+  tbody tr { transition: background .12s; }
+  tbody tr:hover { background: rgba(59,130,246,.06); }
+  td.sym { font-weight: 600; letter-spacing: .3px; }
+  td.num { font-variant-numeric: tabular-nums; }
+  td.up   { color: var(--up); }
+  td.down { color: var(--down); }
+  td.muted { color: var(--mut); }
+  .bar { height: 6px; background: #1c2538; border-radius: 4px; overflow: hidden; min-width: 70px; }
+  .bar > span { display: block; height: 100%; }
+  .bar > span.up   { background: linear-gradient(90deg, var(--up-2), var(--up)); }
+  .bar > span.down { background: linear-gradient(90deg, var(--down-2), var(--down)); }
+
+  /* ---------- Live quotes ---------- */
+  .quote-bar {
+    display: flex; gap: 12px; align-items: center; padding: 10px 12px;
+    background: var(--bg-2); border-radius: 10px; border: 1px solid var(--bd);
+    color: var(--mut); font-size: 13px; margin-bottom: 10px;
+  }
+  .quote-bar.ok   { color: var(--up); border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.06); }
+  .quote-bar.idle { color: var(--mut); }
+
+  /* ---------- Footer ---------- */
+  .foot { color: var(--mut); font-size: 12px; text-align: center; padding: 22px 0 8px; }
+  code { background: #1c2538; padding: 1px 6px; border-radius: 4px; }
+  .skel { color: var(--mut); }
+
+  /* ---------- NIFTY 50 hero strip ---------- */
+  .index-hero {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 14px 24px; margin: 0 auto; max-width: 1200px;
+    border-bottom: 1px solid var(--bd);
+  }
+  .index-hero .name { color: var(--mut); font-size: 12px;
+                      text-transform: uppercase; letter-spacing: 1.5px; }
+  .index-hero .big  { font-size: 36px; font-weight: 800;
+                      font-variant-numeric: tabular-nums; line-height: 1; }
+  .index-hero .src  { color: var(--mut); font-size: 12px; }
+  .pct-badge {
+    display: inline-block; padding: 5px 12px; border-radius: 999px;
+    font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+    border: 1px solid;
+  }
+  .pct-badge.up   { color: var(--up);  background: rgba(34,197,94,.10);
+                    border-color: rgba(34,197,94,.40); }
+  .pct-badge.down { color: var(--down);background: rgba(239,68,68,.10);
+                    border-color: rgba(239,68,68,.40); }
+  .pct-badge.flat { color: var(--gold);background: rgba(245,158,11,.10);
+                    border-color: rgba(245,158,11,.40); }
+
+  /* ---------- KPI glow ---------- */
+  .kpi { box-shadow: var(--shadow-soft), 0 0 0 1px rgba(59,130,246,.04),
+                       0 0 24px rgba(59,130,246,.06); }
+  .kpi:hover { box-shadow: var(--shadow-soft), 0 0 0 1px rgba(59,130,246,.10),
+                                  0 0 28px rgba(59,130,246,.14); }
+
+  /* ---------- Symbol picker ---------- */
+  .picker-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .picker-row label { color: var(--mut); font-size: 12.5px;
+                      text-transform: uppercase; letter-spacing: 1px; }
+  .picker-row select {
+    flex: 1; min-width: 220px;
+    background: var(--bg-2); color: var(--ink);
+    border: 1px solid var(--bd-2); border-radius: 10px;
+    padding: 9px 12px; font-size: 14px; outline: none;
+    font-family: inherit;
+  }
+  .picker-row select:focus { border-color: var(--acc);
+                              box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .picker-row .clear-btn {
+    background: var(--bg-2); color: var(--ink-2);
+    border: 1px solid var(--bd-2); border-radius: 8px;
+    padding: 8px 12px; cursor: pointer; font-size: 13px;
+  }
+  .picker-row .clear-btn:hover { border-color: var(--down); color: var(--down); }
+
+  /* ---------- Selected row highlight (Top5 / Bot5) ---------- */
+  tbody tr { cursor: pointer; }
+  tbody tr.selected {
+    background: rgba(245,158,11,.12) !important;
+    box-shadow: inset 3px 0 0 var(--gold);
+  }
+  tbody tr.selected td { font-weight: 600; }
+
+  /* ---------- Deep dive ---------- */
+  .deepdive {
+    margin-top: 16px;
+    background: linear-gradient(180deg, var(--card) 0%, #0f1a2d 100%);
+    border: 1px solid var(--acc);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 0 0 1px rgba(59,130,246,.10), 0 0 32px rgba(59,130,246,.18);
+    display: none;
+  }
+  .deepdive.open { display: block; }
+  .deepdive h2 { margin: 0 0 4px; font-size: 14px; color: var(--ink-2);
+                 text-transform: uppercase; letter-spacing: 1.5px; }
+  .deepdive .sym-big {
+    font-size: 30px; font-weight: 800; letter-spacing: .5px;
+    color: var(--ink);
+  }
+  .deepdive .asof { color: var(--mut); font-size: 12px; margin-left: 8px; }
+  .deepdive-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-top: 14px;
+  }
+  @media (max-width: 900px) { .deepdive-grid { grid-template-columns: repeat(2, 1fr); } }
+  .dd-card {
+    background: var(--bg-2); border: 1px solid var(--bd);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .dd-card .lbl { color: var(--mut); font-size: 11px;
+                  text-transform: uppercase; letter-spacing: 1px; }
+  .dd-card .val { font-size: 18px; font-weight: 700;
+                  font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .dd-card .val.up   { color: var(--up); }
+  .dd-card .val.down { color: var(--down); }
+  .dd-card .sub { color: var(--mut); font-size: 11.5px; margin-top: 1px; }
+  .dd-bar { height: 8px; background: #1c2538; border-radius: 5px;
+            overflow: hidden; margin-top: 6px; }
+  .dd-bar > span { display: block; height: 100%; }
+  .dd-bar > span.up   { background: linear-gradient(90deg, var(--up-2), var(--up)); }
+  .dd-bar > span.down { background: linear-gradient(90deg, var(--down-2), var(--down)); }
+  .dd-spark {
+    grid-column: 1 / -1; background: var(--bg-2); border: 1px solid var(--bd);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .dd-spark .lbl { color: var(--mut); font-size: 11px;
+                   text-transform: uppercase; letter-spacing: 1px; }
+  .dd-spark svg { display: block; width: 100%; height: 70px; margin-top: 6px; }
+  .dd-foot { color: var(--mut); font-size: 12px; margin-top: 10px; }
+  .dd-loading { color: var(--mut); font-size: 13px; padding: 8px 0; }
+  .dd-error   { color: var(--down); font-size: 13px; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">G</div>
+    <div>
+      <h1>Guarvi</h1>
+      <div class="sub">NIFTY 100 next-day directional signal &middot; research dashboard</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="nifty-pill" id="niftyPill" title="NIFTY 50 reference value">
+    <span class="label">NIFTY 50</span>
+    <span class="val" id="niftyVal">--</span>
+    <span class="chg" id="niftyChg">--</span>
+  </div>
+  <div class="live-time"><span class="dot" id="liveDot"></span><span id="liveClock">--</span></div>
+</header>
+
+<div class="disc" id="disc">Loading disclaimer&hellip;</div>
+
+<div class="index-hero" id="indexHero" title="NIFTY 50 reference value">
+  <div>
+    <div class="name">NIFTY 50</div>
+    <div class="src" id="indexSrc">loading&hellip;</div>
+  </div>
+  <div class="big" id="indexVal">&mdash;</div>
+  <span class="pct-badge flat" id="indexPct">--</span>
+  <div style="flex:1"></div>
+  <div class="src">last 30 sessions &middot; source: parquet / live</div>
+</div>
+
+<main>
+  <div id="freshnessBanner" class="stale-banner hidden" role="alert" aria-live="polite">
+    <span class="sb-icon" aria-hidden="true">&#9888;</span>
+    <span class="sb-text" id="freshnessBannerText">
+      Data is older than one trading day. Showing last available LTP.
+    </span>
+    <button class="sb-close" id="freshnessBannerClose" type="button" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi signal">
+      <div class="klabel">Signal direction</div>
+      <div class="kval" id="kpiDir">--</div>
+      <div class="kdelta" id="kpiDirSub">--</div>
+      <div class="kbar"></div>
+    </div>
+    <div class="kpi">
+      <div class="klabel">Breadth P(up)</div>
+      <div class="kval" id="kpiBreadth">--</div>
+      <div class="kdelta" id="kpiBreadthSub">averaged across 102 symbols</div>
+      <div class="kbar"></div>
+    </div>
+    <div class="kpi">
+      <div class="klabel">Model AUC (walk-forward)</div>
+      <div class="kval" id="kpiAuc">--</div>
+      <div class="kdelta good" id="kpiAucSub">--</div>
+      <div class="kbar"></div>
+    </div>
+    <div class="kpi">
+      <div class="klabel">Gross edge (XGB vs naive)</div>
+      <div class="kval" id="kpiEdge">--</div>
+      <div class="kdelta" id="kpiEdgeSub">--</div>
+      <div class="kbar"></div>
+    </div>
+    <div class="kpi" id="kpiNetCard">
+      <div class="klabel">Net edge (after Indian costs)</div>
+      <div class="kval" id="kpiNet">--</div>
+      <div class="kdelta" id="kpiNetSub">cost-aware backtest</div>
+      <div class="kbar"></div>
+    </div>
+  </div>
+
+  <div class="kpis" style="margin-top: 14px;">
+    <div class="kpi">
+      <div class="klabel">Accuracy (walk-forward)</div>
+      <div class="kval" id="kpiAcc">--</div>
+      <div class="kdelta" id="kpiAccSub">vs base rate 50.4%</div>
+      <div class="kbar"></div>
+    </div>
+    <div class="kpi">
+      <div class="klabel">Universe</div>
+      <div class="kval" id="kpiUniv">NIFTY 100</div>
+      <div class="kdelta" id="kpiUnivSub">cross-sectional features</div>
+      <div class="kbar"></div>
+    </div>
+    <div class="kpi">
+      <div class="klabel">Model</div>
+      <div class="kval" id="kpiModel" style="font-size: 22px;">XGBoost</div>
+      <div class="kdelta" id="kpiModelSub">150 trees &middot; depth 4 &middot; lr 0.05 &middot; median imputer</div>
+      <div class="kbar"></div>
+    </div>
+    <div class="kpi">
+      <div class="klabel">Data freshness</div>
+      <div class="kval" id="kpiFresh" style="font-size: 18px;">--</div>
+      <div class="kdelta" id="kpiFreshSub">as of <span id="kpiAsOf">--</span></div>
+      <div class="kbar"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Stock screener
+      <span class="pill" id="asofPill">--</span>
+    </h2>
+    <div class="screener-head">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M21 21l-4.3-4.3"></path>
+        </svg>
+        <input id="searchBox" type="text" placeholder="Filter by symbol (e.g. RELIANCE, INFY, TCS)&hellip;" autocomplete="off" />
+      </div>
+      <div class="filter">
+        <button data-dir="ALL"  class="active">All</button>
+        <button data-dir="UP">UP only</button>
+        <button data-dir="DOWN">DOWN only</button>
+      </div>
+      <div class="count" id="countPill">--</div>
+    </div>
+
+    <div class="picker-row">
+      <label for="symbolPick">Selected stock</label>
+      <select id="symbolPick"><option value="">&mdash; pick a NIFTY 100 symbol &mdash;</option></select>
+      <button class="clear-btn" id="clearPick" type="button">Clear</button>
+    </div>
+
+    <div class="grid2">
+      <div class="subcard top">
+        <h3>Top 5 &mdash; highest P(up)</h3>
+        <table id="tblTop">
+          <thead><tr><th>#</th><th>Symbol</th><th>P(up)</th><th>Confidence</th><th>Last close</th></tr></thead>
+          <tbody><tr><td colspan="5" class="skel">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+      <div class="subcard bot">
+        <h3>Bottom 5 &mdash; lowest P(up)</h3>
+        <table id="tblBot">
+          <thead><tr><th>#</th><th>Symbol</th><th>P(up)</th><th>Confidence</th><th>Last close</th></tr></thead>
+          <tbody><tr><td colspan="5" class="skel">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="deepdive" id="deepDive" aria-live="polite">
+      <h2>&#128269; Selected Stock Deep Dive <span class="asof" id="ddAsOf"></span></h2>
+      <div class="sym-big" id="ddSymbol">&mdash;</div>
+      <div id="ddBody" class="dd-loading">Pick a symbol above to see P(UP), confidence, SMA, 52-week range, and a 30-day close chart.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Live quotes <span class="pill" id="sessionPill">market hours only</span></h2>
+    <div class="quote-bar idle" id="quoteBar">Live collector is idle or it is outside NSE hours (09:15&ndash;15:30 IST).</div>
+    <table id="tblQuotes">
+      <thead><tr><th>Symbol</th><th>Last</th><th>Change %</th><th>Volume</th></tr></thead>
+      <tbody><tr><td colspan="4" class="skel">No live data yet.</td></tr></tbody>
+    </table>
+  </div>
+
+  <p class="foot">
+    Not investment advice &middot; See <code>PROJECT_STATUS.md</code> for the full, honest research verdict.
+    The signal is real but small (~2 bps/day gross) and not profitable net of Indian retail costs
+    (~37 bps/day round-trip). Naive equal-weight NIFTY100 has historically been the better strategy.
+  </p>
+</main>
+
+<script>
+const state = { filter: 'ALL', query: '', allSymbols: [], sessionOpen: false, selected: null };
+const $ = (id) => document.getElementById(id);
+
+// ---- Tiny in-memory cache so widget interactions don't re-hit the network ----
+const dataCache = {
+  _m: new Map(), // url -> { t, data }
+  get(url, maxAgeMs) {
+    const e = this._m.get(url);
+    if (!e) return null;
+    if (Date.now() - e.t > maxAgeMs) return null;
+    return e.data;
+  },
+  set(url, data) { this._m.set(url, { t: Date.now(), data }); return data; },
+};
+async function cachedFetch(url, maxAgeMs) {
+  const hit = dataCache.get(url, maxAgeMs);
+  if (hit !== null) return hit;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(url + ' -> ' + r.status);
+  const data = await r.json();
+  return dataCache.set(url, data);
+}
+
+function fmtNum(x, digits = 2) {
+  if (x == null || isNaN(x)) return '--';
+  return Number(x).toLocaleString('en-IN', { maximumFractionDigits: digits });
+}
+function fmtInt(x) {
+  if (x == null || isNaN(x)) return '--';
+  return Number(x).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+function fmtPct(x, digits = 1) {
+  if (x == null || isNaN(x)) return '--';
+  return (x * 100).toFixed(digits) + '%';
+}
+function fmtSigned(x, digits = 2) {
+  if (x == null || isNaN(x)) return '--';
+  const v = Number(x);
+  return (v >= 0 ? '+' : '') + v.toLocaleString('en-IN', { maximumFractionDigits: digits });
+}
+function fmtSignedPct(x, digits = 2) {
+  if (x == null || isNaN(x)) return '--';
+  const v = Number(x);
+  return (v >= 0 ? '+' : '') + v.toFixed(digits) + '%';
+}
+function fmtDate(d) {
+  if (!d) return '--';
+  // accept "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS..."
+  const s = String(d);
+  const [y, m, day] = s.slice(0, 10).split('-');
+  if (!y) return s;
+  return `${day}-${m}-${y}`;
+}
+
+async function tickClock() {
+  try {
+    const r = await fetch('/api/now');
+    if (!r.ok) return;
+    const n = await r.json();
+    $('liveClock').textContent = n.ist_human;
+    state.sessionOpen = n.in_market_session;
+    const dot = $('liveDot');
+    if (n.in_market_session) dot.classList.add('on'); else dot.classList.remove('on');
+    const sp = $('sessionPill');
+    sp.textContent = n.in_market_session ? 'session live' : 'market closed';
+    sp.className = 'pill ' + (n.in_market_session ? 'up' : 'flat');
+  } catch (e) { /* network blip, keep last value */ }
+}
+
+async function tickNifty() {
+  try {
+    const data = await cachedFetch('/api/nifty50', 30_000);
+    const n = data;
+    // top bar pill
+    const pill = $('niftyPill');
+    if (n.value == null) {
+      $('niftyVal').textContent = '--';
+      $('niftyChg').textContent = n.source === 'unavailable' ? 'unavailable' : 'no data';
+      pill.classList.remove('up', 'down');
+    } else {
+      $('niftyVal').textContent = fmtNum(n.value, 2);
+      const chgTxt = (n.change >= 0 ? '+' : '') + fmtNum(n.change, 2)
+                   + ' (' + (n.change_percent >= 0 ? '+' : '') + fmtNum(n.change_percent, 2) + '%)';
+      $('niftyChg').textContent = chgTxt;
+      pill.classList.remove('up', 'down');
+      pill.classList.add(n.change >= 0 ? 'up' : 'down');
+      pill.title = (n.source || '') + ' · as of ' + (n.as_of || '--');
+    }
+    // big hero strip
+    const heroVal = $('indexVal');
+    const heroPct = $('indexPct');
+    const heroSrc = $('indexSrc');
+    if (n.value == null) {
+      heroVal.textContent = '—';
+      heroPct.textContent = 'unavailable';
+      heroPct.className = 'pct-badge flat';
+      heroSrc.textContent = (n.source || 'unavailable') + ' · no data';
+    } else {
+      heroVal.textContent = fmtNum(n.value, 2);
+      const chg = n.change_percent;
+      const cls = chg == null ? 'flat' : (chg >= 0 ? 'up' : 'down');
+      heroPct.textContent = (chg == null ? '' : (chg >= 0 ? '+' : '')) + fmtNum(chg, 2) + '%';
+      heroPct.className = 'pct-badge ' + cls;
+      heroSrc.textContent = (n.source || '') + ' · as of ' + fmtDate(n.as_of);
+    }
+  } catch (e) { /* ignore */ }
+}
+
+// ---- Data freshness (P1) — surfaces a stale-data banner and updates the KPI ----
+let _freshnessLast = null;
+function showFreshnessBanner(f) {
+  const el = $('freshnessBanner');
+  if (!el) return;
+  // respect user's dismiss for the rest of the session
+  if (sessionStorage.getItem('freshnessBannerDismissed') === '1') {
+    el.classList.add('hidden');
+    return;
+  }
+  if (!f || !f.is_stale) {
+    el.classList.add('hidden');
+    return;
+  }
+  const age = f.age_trading_days != null ? f.age_trading_days : '?';
+  const md  = f.max_date || 'unknown';
+  const src = f.source || 'parquet';
+  $('freshnessBannerText').innerHTML =
+    'Stale data warning &mdash; parquet is <b>' + age + ' trading day(s)</b> old '
+    + '(last trading day: <b>' + md + '</b> &middot; source: ' + src + '). '
+    + 'Showing last available LTP. Run <code>python scripts/ingest_eod.py</code> to refresh.';
+  el.classList.remove('hidden');
+}
+function hideFreshnessBanner() {
+  $('freshnessBanner').classList.add('hidden');
+  sessionStorage.setItem('freshnessBannerDismissed', '1');
+}
+async function tickFreshness() {
+  try {
+    const f = await cachedFetch('/api/freshness', 30_000);
+    if (!f) return;
+    _freshnessLast = f;
+    // Update the data-freshness KPI card with a clear, truth-from-file value
+    if (f.max_date) {
+      $('kpiFresh').textContent = f.is_stale ? 'stale' : 'fresh';
+      $('kpiFresh').className = 'kval ' + (f.is_stale ? 'down' : 'up');
+      $('kpiFreshSub').innerHTML =
+        'as of <b>' + f.max_date + '</b> &middot; ' + (f.age_trading_days != null ? f.age_trading_days + 'd old' : '--')
+        + ' &middot; <span class="muted">' + (f.source || 'parquet') + '</span>';
+    }
+    // Update the screener as-of pill so it shows the actual data date, not the model date
+    if (f.max_date) $('asofPill').textContent = 'as of ' + f.max_date;
+    showFreshnessBanner(f);
+  } catch (e) { /* ignore */ }
+}
+
+async function loadSignal() {
+  try {
+    const s = await cachedFetch('/api/signal', 60_000);
+    $('disc').innerHTML = '<b>Disclaimer.</b> ' + (s.disclaimer || 'Research/education tool only.');
+
+    const dir = s.direction || 'FLAT';
+    $('kpiDir').textContent = dir;
+    $('kpiDir').className = 'kval ' + (dir === 'UP' ? 'up' : dir === 'DOWN' ? 'down' : 'flat');
+    $('kpiDirSub').innerHTML = 'as of <b>' + (s.as_of || '--') + '</b> &middot; ' + (s.n_symbols || 0) + ' symbols &middot; '
+      + '<span class="badge ' + (dir === 'UP' ? 'up' : dir === 'DOWN' ? 'down' : 'flat') + '">' + dir + '</span>';
+
+    const bp = s.market_breadth_prob;
+    $('kpiBreadth').textContent = bp == null ? '--' : (bp * 100).toFixed(1) + '%';
+    $('kpiBreadth').className = 'kval ' + (bp >= 0.5 ? 'up' : 'down');
+    $('kpiBreadthSub').textContent = bp >= 0.5
+      ? 'breadth leans UP (≥50%)' : 'breadth leans DOWN (<50%)';
+
+    $('kpiFresh').textContent = s.freshness ? s.freshness.split(';')[0] : '--';
+    $('kpiAsOf').textContent = s.as_of || '--';
+    // Prefer the freshness marker (truth-from-file) for the screener as-of pill
+    if (_freshnessLast && _freshnessLast.max_date) {
+      $('asofPill').textContent = 'as of ' + _freshnessLast.max_date;
+    } else {
+      $('asofPill').textContent = s.as_of ? 'as of ' + s.as_of : '--';
+    }
+  } catch (e) { /* keep last */ }
+}
+
+async function loadPerf() {
+  try {
+    const p = await cachedFetch('/api/performance', 60_000);
+    const v = p.summary || {};
+    $('kpiAuc').textContent  = v.base_signal_auc != null ? Number(v.base_signal_auc).toFixed(4) : '--';
+    $('kpiAucSub').textContent = v.phase9_probe_extended_auc != null
+      ? 'Phase 9 FII/DII probe: ' + Number(v.phase9_probe_extended_auc).toFixed(4)
+      : 'expanding-window walk-forward';
+    $('kpiAcc').textContent = v.base_signal_accuracy_pct != null
+      ? v.base_signal_accuracy_pct.toFixed(2) + '%' : '--';
+    $('kpiAccSub').textContent = v.base_rate_pct != null
+      ? 'base rate ' + v.base_rate_pct + '% (naive NIFTY100)' : 'no random train/test splits';
+    $('kpiEdge').textContent = v.gross_edge_bps_per_day != null
+      ? '~' + v.gross_edge_bps_per_day + ' bps' : '--';
+    $('kpiEdgeSub').textContent = v.gross_edge_bps_per_day != null
+      ? '~' + (v.gross_edge_bps_per_day / 100).toFixed(2) + '% per day (gross)' : '--';
+
+    // Net edge from the cost-aware backtest (P2)
+    const nb = v.net_backtest;
+    if (nb && nb.n_days) {
+      const cumNet = nb.net_cum_return_pct;
+      const cumGross = nb.gross_cum_return_pct;
+      const naive = nb.naive_equal_weight_cum_return_pct;
+      const edge = nb.edge_vs_naive_pct;
+      $('kpiNet').textContent = (cumNet != null ? (cumNet >= 0 ? '+' : '') + cumNet.toFixed(1) + '%' : '--');
+      $('kpiNet').className = 'kval ' + (cumNet >= 0 ? 'up' : 'down');
+      $('kpiNetSub').innerHTML =
+        'LONG ' + nb.n_long + ' / SHORT ' + nb.n_short + ' · ' + nb.n_days + ' sessions · '
+        + (nb.cost_bps_roundtrip_per_day != null ? nb.cost_bps_roundtrip_per_day.toFixed(1) + ' bps/day cost' : '')
+        + '<br>'
+        + 'gross ' + (cumGross != null ? (cumGross >= 0 ? '+' : '') + cumGross.toFixed(1) + '%' : '--')
+        + ' · naive ' + (naive != null ? (naive >= 0 ? '+' : '') + naive.toFixed(1) + '%' : '--')
+        + ' · edge ' + (edge != null ? (edge >= 0 ? '+' : '') + edge.toFixed(1) + '%' : '--')
+        + ' · Sharpe ' + (nb.net_sharpe != null ? nb.net_sharpe.toFixed(2) : '--');
+    } else {
+      $('kpiNet').textContent = '--';
+      $('kpiNetSub').textContent = 'cost-aware backtest not yet available';
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function applyFilters(symbols) {
+  const q = state.query.trim().toUpperCase();
+  let out = symbols;
+  if (q) out = out.filter(s => s.symbol.toUpperCase().includes(q));
+  if (state.filter === 'UP')   out = out.filter(s => s.prob_up >= 0.5);
+  if (state.filter === 'DOWN') out = out.filter(s => s.prob_up <  0.5);
+  return out;
+}
+
+function rowHTML(rank, x) {
+  const pct = (x.prob_up * 100).toFixed(1);
+  const cls = x.prob_up >= 0.5 ? 'up' : 'down';
+  const last = x.last_close != null ? Number(x.last_close).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--';
+  const sel = state.selected && state.selected.toUpperCase() === x.symbol.toUpperCase() ? ' selected' : '';
+  return `<tr class="sym-row${sel}" data-symbol="${x.symbol}">
+    <td class="muted">${rank}</td>
+    <td class="sym">${x.symbol}</td>
+    <td class="num ${cls}">${pct}%</td>
+    <td><div class="bar"><span class="${cls}" style="width:${pct}%"></span></div></td>
+    <td class="num">${last}</td>
+  </tr>`;
+}
+
+function renderScreener() {
+  const filtered = applyFilters(state.allSymbols);
+  const sorted = [...filtered].sort((a, b) => b.prob_up - a.prob_up);
+  const top5 = sorted.slice(0, 5);
+  const bot5 = sorted.slice(-5).reverse();
+
+  const fill = (id, list) => {
+    const tb = $(id).querySelector('tbody');
+    if (!list.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="skel">No symbols match the current filter.</td></tr>';
+      return;
+    }
+    tb.innerHTML = list.map((x, i) => rowHTML(i + 1, x)).join('');
+  };
+  fill('tblTop', top5);
+  fill('tblBot', bot5);
+
+  $('countPill').textContent =
+    filtered.length + ' / ' + state.allSymbols.length + ' symbols'
+    + (state.query ? ' matching "' + state.query + '"' : '')
+    + (state.filter !== 'ALL' ? ' (' + state.filter + ')' : '');
+
+  // refresh selectbox options (only on first paint — preserve current selection on re-renders)
+  const sel = $('symbolPick');
+  if (sel && sel.options.length <= 1) {
+    const opts = state.allSymbols
+      .slice()
+      .sort((a, b) => a.symbol.localeCompare(b.symbol))
+      .map(s => `<option value="${s.symbol}">${s.symbol}</option>`)
+      .join('');
+    sel.insertAdjacentHTML('beforeend', opts);
+  }
+}
+
+async function loadScreen() {
+  try {
+    const s = await cachedFetch('/api/screen?limit=102', 60_000);
+    state.allSymbols = s.symbols || [];
+    renderScreener();
+  } catch (e) { /* keep last */ }
+}
+
+async function loadQuotes() {
+  let s;
+  try {
+    s = await cachedFetch('/api/quotes?limit=50', 30_000);
+  } catch (e) {
+    const bar = $('quoteBar');
+    bar.textContent = 'Live quotes unavailable: ' + e.message;
+    bar.className = 'quote-bar idle';
+    $('tblQuotes').querySelector('tbody').innerHTML =
+      '<tr><td colspan="4" class="skel">No live data yet.</td></tr>';
+    return;
+  }
+  const tb = $('tblQuotes').querySelector('tbody');
+  const bar = $('quoteBar');
+  if (!s.quotes || !s.quotes.length) {
+    if (state.sessionOpen) {
+      bar.textContent = 'Live collector is connected but no rows for this minute yet.';
+      bar.className = 'quote-bar ok';
+    } else {
+      bar.textContent = 'Live collector is idle or it is outside NSE hours (09:15–15:30 IST).';
+      bar.className = 'quote-bar idle';
+    }
+    tb.innerHTML = '<tr><td colspan="4" class="skel">No live data yet.</td></tr>';
+    return;
+  }
+  // New: tell the user explicitly when we're showing the last LTP from the
+  // parquet because the live collector is idle.
+  const meta = `${s.count} symbols · source: ${s.source} · as of ${fmtDate(s.as_of)}`;
+  if (s.market_state === 'closed') {
+    bar.textContent = `Market closed. Showing last available LTP as of ${fmtDate(s.as_of)} 15:30 IST · ${meta}`;
+    bar.className = 'quote-bar idle';
+  } else {
+    bar.textContent = `Showing ${s.count} live ticks from the Groww collector · ${meta}`;
+    bar.className = 'quote-bar ok';
+  }
+  tb.innerHTML = s.quotes.map(q => {
+    const ch = q.change_percent != null ? q.change_percent : q.change;
+    const cls = (typeof ch === 'number' && ch >= 0) ? 'up' : 'down';
+    const last = q.last != null ? q.last : q.close;
+    return `<tr>
+      <td class="sym">${q.symbol}</td>
+      <td class="num">${last != null ? Number(last).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}</td>
+      <td class="num ${cls}">${ch != null ? (ch >= 0 ? '+' : '') + Number(ch).toFixed(2) + '%' : '--'}</td>
+      <td class="num muted">${q.volume != null ? Number(q.volume).toLocaleString('en-IN') : '--'}</td>
+    </tr>`;
+  }).join('');
+}
+
+$('searchBox').addEventListener('input', (e) => {
+  state.query = e.target.value;
+  renderScreener();
+});
+document.querySelectorAll('.filter button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.filter = btn.dataset.dir;
+    renderScreener();
+  });
+});
+
+// ---- Selected stock → row highlight + deep-dive panel ----
+function clearSelection() {
+  state.selected = null;
+  $('symbolPick').value = '';
+  document.querySelectorAll('tbody tr.sym-row.selected').forEach(tr => tr.classList.remove('selected'));
+  $('deepDive').classList.remove('open');
+  $('ddBody').innerHTML = '<div class="dd-loading">Pick a symbol above to see P(UP), confidence, SMA, 52-week range, and a 30-day close chart.</div>';
+  $('ddAsOf').textContent = '';
+  $('ddSymbol').textContent = '—';
+}
+
+function applySelection(symbol) {
+  state.selected = symbol;
+  // toggle .selected on matching rows in BOTH tables
+  const norm = (s) => (s || '').toUpperCase();
+  document.querySelectorAll('tbody tr.sym-row').forEach(tr => {
+    tr.classList.toggle('selected', norm(tr.dataset.symbol) === norm(symbol));
+  });
+  // keep selectbox in sync (if the click came from a row)
+  $('symbolPick').value = symbol || '';
+  if (!symbol) {
+    $('deepDive').classList.remove('open');
+    return;
+  }
+  $('ddSymbol').textContent = symbol;
+  $('ddAsOf').textContent = 'loading…';
+  $('ddBody').innerHTML = '<div class="dd-loading">Fetching deep-dive for ' + symbol + '…</div>';
+  $('deepDive').classList.add('open');
+  loadDeepDive(symbol);
+}
+
+$('symbolPick').addEventListener('change', (e) => applySelection(e.target.value));
+$('clearPick').addEventListener('click', clearSelection);
+// Event delegation for clicks on any table row (Top 5 / Bottom 5)
+document.addEventListener('click', (e) => {
+  const tr = e.target.closest('tbody tr.sym-row');
+  if (!tr) return;
+  const sym = tr.dataset.symbol;
+  if (!sym) return;
+  // re-clicking the same row toggles it off
+  applySelection(state.selected && state.selected.toUpperCase() === sym.toUpperCase() ? null : sym);
+});
+
+function renderSparkline(history) {
+  if (!history || !history.length) return '<div class="dd-loading">No history.</div>';
+  const w = 1000, h = 70, pad = 4;
+  const xs = history.map((_, i) => pad + (i * (w - 2 * pad)) / Math.max(history.length - 1, 1));
+  const ys = history.map(p => p.close);
+  const min = Math.min(...ys), max = Math.max(...ys);
+  const span = (max - min) || 1;
+  const yFor = (v) => h - pad - ((v - min) / span) * (h - 2 * pad);
+  const d = history.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xs[i].toFixed(1)} ${yFor(p.close).toFixed(1)}`).join(' ');
+  const last = history[history.length - 1].close;
+  const first = history[0].close;
+  const up = last >= first;
+  const stroke = up ? 'var(--up)' : 'var(--down)';
+  const fill = up ? 'rgba(34,197,94,.10)' : 'rgba(239,68,68,.10)';
+  const area = `${d} L ${xs[xs.length-1].toFixed(1)} ${h-pad} L ${xs[0].toFixed(1)} ${h-pad} Z`;
+  return `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img"
+         aria-label="Last ${history.length} close prices">
+      <path d="${area}" fill="${fill}" stroke="none"></path>
+      <path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6"></path>
+    </svg>`;
+}
+
+async function loadDeepDive(symbol) {
+  try {
+    const d = await cachedFetch('/api/symbol/' + encodeURIComponent(symbol), 60_000);
+    $('ddAsOf').textContent = 'as of ' + fmtDate(d.as_of);
+    const pct = d.prob_up;
+    const pctTxt = pct == null ? '--' : (pct * 100).toFixed(1) + '%';
+    const pctCls = pct == null ? '' : (pct >= 0.5 ? 'up' : 'down');
+    const conf = d.confidence;
+    const confTxt = conf == null ? '--' : (conf * 100).toFixed(1) + '%';
+    const last = d.last_close;
+    const chg = d.change;
+    const chgPct = d.change_percent;
+    const chgCls = chg == null ? '' : (chg >= 0 ? 'up' : 'down');
+    $('ddBody').innerHTML = `
+      <div class="deepdive-grid">
+        <div class="dd-card">
+          <div class="lbl">P(UP) — model probability</div>
+          <div class="val ${pctCls}">${pctTxt}</div>
+          <div class="dd-bar"><span class="${pctCls}" style="width:${pct != null ? (pct * 100).toFixed(1) : 0}%"></span></div>
+          <div class="sub">${d.rank != null ? 'rank #' + d.rank : 'rank not available'}</div>
+        </div>
+        <div class="dd-card">
+          <div class="lbl">Confidence (|P(UP) − 0.5| × 2)</div>
+          <div class="val">${confTxt}</div>
+          <div class="dd-bar"><span class="${pctCls || 'up'}" style="width:${conf != null ? (conf * 100).toFixed(1) : 0}%"></span></div>
+          <div class="sub">${conf != null && conf >= 0.10 ? 'high confidence' : (conf == null ? 'n/a' : 'low confidence')}</div>
+        </div>
+        <div class="dd-card">
+          <div class="lbl">Last close</div>
+          <div class="val">${last != null ? Number(last).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}</div>
+          <div class="sub ${chgCls}">${fmtSigned(chg)} (${fmtSignedPct(chgPct)}) vs previous close</div>
+        </div>
+        <div class="dd-card">
+          <div class="lbl">Day OHLC</div>
+          <div class="val" style="font-size:14px;">
+            O ${d.open  != null ? Number(d.open ).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'} ·
+            H ${d.high != null ? Number(d.high).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'} ·
+            L ${d.low  != null ? Number(d.low ).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
+          </div>
+          <div class="sub">Volume ${fmtInt(d.volume)}</div>
+        </div>
+        <div class="dd-card">
+          <div class="lbl">52-week range</div>
+          <div class="val" style="font-size:14px;">
+            ${d.high_52w != null ? Number(d.high_52w).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
+            &nbsp;–&nbsp;
+            ${d.low_52w != null ? Number(d.low_52w).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
+          </div>
+          <div class="sub">252-session window</div>
+        </div>
+        <div class="dd-card">
+          <div class="lbl">SMA-20 / SMA-50</div>
+          <div class="val" style="font-size:14px;">
+            ${d.sma_20 != null ? Number(d.sma_20).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
+            &nbsp;/&nbsp;
+            ${d.sma_50 != null ? Number(d.sma_50).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
+          </div>
+          <div class="sub">simple moving average of closes</div>
+        </div>
+        <div class="dd-spark">
+          <div class="lbl">Last ${d.history.length} sessions · close price</div>
+          ${renderSparkline(d.history)}
+        </div>
+      </div>
+      <div class="dd-foot">Source: ${d.source} · computed on the fly from <code>nifty100_ohlcv.parquet</code>. No model retraining.</div>
+    `;
+  } catch (e) {
+    $('ddBody').innerHTML = '<div class="dd-error">Could not load deep-dive: ' + e.message + '</div>';
+  }
+}
+
+// Tab visibility debounce — pause heavy pollers when the tab is hidden.
+let pollers = [tickClock, tickFreshness, tickNifty, loadSignal, loadScreen, loadQuotes];
+function startPolling() {
+  pollers.forEach((fn, i) => setInterval(fn, [1000, 30000, 30000, 60000, 60000, 30000][i]));
+}
+document.addEventListener('visibilitychange', () => {
+  // lightweight: just re-tick on resume (intervals are already running; this
+  // covers the case where the user re-focuses after a long idle).
+  if (!document.hidden) pollers.forEach(fn => { try { fn(); } catch (e) {} });
+});
+
+// Wire the banner dismiss button (one-time)
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = $('freshnessBannerClose');
+  if (btn) btn.addEventListener('click', hideFreshnessBanner);
+});
+
+(async () => {
+  await Promise.all([loadSignal(), loadScreen(), loadPerf(), tickClock(), tickFreshness(), tickNifty(), loadQuotes()]);
+  startPolling();
+})();
+</script>
+</body>
+</html>
