@@ -3,8 +3,31 @@
 # Idempotent: safe to re-run on every deploy.
 set -euo pipefail
 
-echo "[render-build] python:  $(python --version 2>&1)"
-echo "[render-build] pip:     $(pip --version)"
+PYTHON_BIN="${PYTHON_BIN:-$(command -v python || command -v python3 || echo python)}"
+
+# Render sometimes invokes this script before the dependency install step.
+# Ensure the packages needed to build the parquet cache exist before we import
+# numpy/pandas for feature generation.
+if ! "$PYTHON_BIN" -c "import numpy, pandas, pyarrow" >/dev/null 2>&1; then
+    echo "[render-build] Installing Python dependencies for build-time data generation..."
+    if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
+        echo "[render-build] Bootstrapping pip for this Python runtime..."
+        "$PYTHON_BIN" -m ensurepip --upgrade >/dev/null 2>&1 || true
+    fi
+    if "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
+        "$PYTHON_BIN" -m pip install --upgrade pip >/dev/null
+        "$PYTHON_BIN" -m pip install -r requirements-render.txt
+    elif command -v pip >/dev/null 2>&1; then
+        pip install --upgrade pip >/dev/null
+        pip install -r requirements-render.txt
+    else
+        echo "[render-build] ERROR: no pip available for this environment" >&2
+        exit 1
+    fi
+fi
+
+echo "[render-build] python:  $($PYTHON_BIN --version 2>&1)"
+echo "[render-build] pip:     $(command -v pip || true)"
 echo "[render-build] cwd:     $(pwd)"
 
 # Make sure the runtime directories exist with safe permissions.
@@ -37,7 +60,7 @@ fi
 # This avoids the 90s runtime rebuild that causes 502s on free tier
 if [ -f "data/processed/nifty100_ohlcv.parquet" ] && [ ! -f "data/processed/nifty100_features.parquet" ]; then
     echo "[render-build] Building nifty100_features.parquet from OHLCV..."
-    python -c "
+    "$PYTHON_BIN" -c "
 import sys
 sys.path.insert(0, '.')
 from src.market_ml.feature_engineering import build_full_dataset
@@ -61,7 +84,7 @@ fi
 # This saves the scores as a small JSON file that loads instantly
 if [ -f "data/processed/nifty100_features.parquet" ] && [ -f "reports/live_signal.json" ]; then
     echo "[render-build] Pre-computing scores for runtime..."
-    python -c "
+    "$PYTHON_BIN" -c "
 import sys
 sys.path.insert(0, '.')
 from src.market_ml.scoring import compute_all_scores

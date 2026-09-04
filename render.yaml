@@ -17,7 +17,7 @@ services:
     region: oregon          # Closest free region to India; Singapore is paid-only.
     branch: main
     autoDeploy: true
-    buildCommand: "bash render_build.sh && pip install --upgrade pip && pip install -r requirements-render.txt"
+    buildCommand: "bash render_build.sh"
     startCommand: "uvicorn web.main:app --host 0.0.0.0 --port $PORT --workers 1"
     healthCheckPath: "/api/now"
     envVars:
