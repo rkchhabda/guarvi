@@ -57,4 +57,25 @@ else
     echo "[render-build] WARN  data/processed/nifty100_ohlcv.parquet missing - features will be empty"
 fi
 
+# Pre-compute scores at build time to avoid loading 205 MB parquet at runtime
+# This saves the scores as a small JSON file that loads instantly
+if [ -f "data/processed/nifty100_features.parquet" ] && [ -f "reports/live_signal.json" ]; then
+    echo "[render-build] Pre-computing scores for runtime..."
+    python -c "
+import sys
+sys.path.insert(0, '.')
+from src.market_ml.scoring import compute_all_scores
+import json
+from pathlib import Path
+result = compute_all_scores()
+CACHE_PATH = Path('reports/precomputed_scores.json')
+CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+CACHE_PATH.write_text(json.dumps(result))
+print(f'Pre-computed scores cached to {CACHE_PATH} ({len(result.get(\"scores\", []))} symbols)')
+"
+    echo "[render-build] Scores pre-computed successfully"
+else
+    echo "[render-build] WARN  Cannot pre-compute scores - missing features or signal"
+fi
+
 echo "[render-build] done."

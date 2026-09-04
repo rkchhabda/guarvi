@@ -588,6 +588,9 @@ def _build_score_card(symbol: str, row: pd.Series, sector: str, as_of: str,
 
 # --- public API ------------------------------------------------------------
 
+# Cache path for pre-computed scores (built at deploy time)
+SCORES_CACHE_PATH = ROOT / "reports" / "precomputed_scores.json"
+
 def _load_features() -> pd.DataFrame:
     """Load the features parquet. If it's missing (e.g. on Render where the
     127 MB file is too large for git), rebuild it from the OHLCV parquet
@@ -600,6 +603,24 @@ def _load_features() -> pd.DataFrame:
     df = pd.read_parquet(FEATURES_PATH)
     df["date"] = pd.to_datetime(df["date"]).dt.normalize()
     return df
+
+
+def _load_precomputed_scores() -> Optional[Dict[str, Any]]:
+    """Load pre-computed scores from build-time cache.
+    
+    Returns None if cache doesn't exist or is stale.
+    """
+    if not SCORES_CACHE_PATH.exists():
+        return None
+    try:
+        import json
+        data = json.loads(SCORES_CACHE_PATH.read_text())
+        # Validate cache has expected structure
+        if not isinstance(data, dict) or "scores" not in data:
+            return None
+        return data
+    except Exception:
+        return None
 
 
 def _maybe_rebuild_features_from_ohlcv() -> bool:
@@ -658,6 +679,12 @@ def compute_all_scores() -> Dict[str, Any]:
           "summary": {"count": 100, "mean_overall": 51.2, "bulls": 47, "bears": 53},
         }
     """
+    # Try pre-computed cache first (built at deploy time, avoids 205 MB memory load)
+    cached = _load_precomputed_scores()
+    if cached is not None:
+        return cached
+    
+    # Fallback: compute from features parquet (memory intensive)
     df = _load_features()
     if df.empty:
         return {"as_of": None, "scores": [], "sector_summary": {}, "summary": {}}
