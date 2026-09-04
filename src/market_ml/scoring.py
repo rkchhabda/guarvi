@@ -32,6 +32,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 FEATURES_PATH = ROOT / "data" / "processed" / "nifty100_features.parquet"
+OHLCV_PATH = ROOT / "data" / "processed" / "nifty100_ohlcv.parquet"
 SIGNAL_PATH = ROOT / "reports" / "live_signal.json"
 
 # --- sector mapping (illustrative, deterministic, no external data) ---
@@ -588,11 +589,42 @@ def _build_score_card(symbol: str, row: pd.Series, sector: str, as_of: str,
 # --- public API ------------------------------------------------------------
 
 def _load_features() -> pd.DataFrame:
+    """Load the features parquet. If it's missing (e.g. on Render where the
+    127 MB file is too large for git), rebuild it from the OHLCV parquet
+    that IS tracked in git, cache to disk, then load.
+    """
     if not FEATURES_PATH.exists():
-        return pd.DataFrame()
+        rebuilt = _maybe_rebuild_features_from_ohlcv()
+        if not rebuilt:
+            return pd.DataFrame()
     df = pd.read_parquet(FEATURES_PATH)
     df["date"] = pd.to_datetime(df["date"]).dt.normalize()
     return df
+
+
+def _maybe_rebuild_features_from_ohlcv() -> bool:
+    """Build ``nifty100_features.parquet`` from ``nifty100_ohlcv.parquet``
+    on the fly so that small / free-tier deployments (e.g. Render) work
+    without committing the 127 MB engineered-feature file.
+
+    Returns True if the features parquet exists (or was just created).
+    """
+    if FEATURES_PATH.exists():
+        return True
+    if not OHLCV_PATH.exists():
+        return False
+    try:
+        from .feature_engineering import build_full_dataset  # type: ignore
+        FEATURES_PATH.parent.mkdir(parents=True, exist_ok=True)
+        build_full_dataset(str(OHLCV_PATH), str(FEATURES_PATH))
+        return FEATURES_PATH.exists()
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning(
+            "Could not rebuild features from OHLCV (%s): %s",
+            OHLCV_PATH, exc,
+        )
+        return False
 
 
 def _load_signal() -> Dict[str, Dict[str, Any]]:
