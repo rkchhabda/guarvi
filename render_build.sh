@@ -5,27 +5,6 @@ set -euo pipefail
 
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python || command -v python3 || echo python)}"
 
-# Render sometimes invokes this script before the dependency install step.
-# Ensure the packages needed to build the parquet cache exist before we import
-# numpy/pandas for feature generation.
-if ! "$PYTHON_BIN" -c "import numpy, pandas, pyarrow" >/dev/null 2>&1; then
-    echo "[render-build] Installing Python dependencies for build-time data generation..."
-    if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
-        echo "[render-build] Bootstrapping pip for this Python runtime..."
-        "$PYTHON_BIN" -m ensurepip --upgrade >/dev/null 2>&1 || true
-    fi
-    if "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
-        "$PYTHON_BIN" -m pip install --upgrade pip >/dev/null
-        "$PYTHON_BIN" -m pip install -r requirements-render.txt
-    elif command -v pip >/dev/null 2>&1; then
-        pip install --upgrade pip >/dev/null
-        pip install -r requirements-render.txt
-    else
-        echo "[render-build] ERROR: no pip available for this environment" >&2
-        exit 1
-    fi
-fi
-
 echo "[render-build] python:  $($PYTHON_BIN --version 2>&1)"
 echo "[render-build] pip:     $(command -v pip || true)"
 echo "[render-build] cwd:     $(pwd)"
