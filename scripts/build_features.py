@@ -38,15 +38,17 @@ def main() -> int:
     args = parse_args()
     logger.info("Building features from %s", args.input)
 
-    from market_ml.feature_engineering import build_full_dataset
+    from market_ml.feature_engineering import build_full_dataset, ensure_dataframe
 
     result = build_full_dataset(args.input, args.output)
+    features = ensure_dataframe(result, context='build_features')
 
     logger.info("Feature build complete:")
     logger.info("  Rows: %d", result["row_count"])
     logger.info("  Symbols: %d", result["symbol_count"])
     logger.info("  Features: %d", result["feature_count"])
     logger.info("  Target balance: %s", result["target_balance"])
+    logger.info("  DataFrame shape: %s", features.shape)
 
     if not result["removal_log"].empty:
         logger.info("  Removed rows by symbol:")

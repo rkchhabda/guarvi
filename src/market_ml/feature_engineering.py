@@ -481,6 +481,64 @@ def build_cross_sectional(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def ensure_dataframe(obj: object, context: str = "feature build") -> pd.DataFrame:
+    """Safely convert a build result into a pandas DataFrame.
+
+    This prevents deployment-time ``dict.to_parquet()`` errors when the builder
+    returns a metadata dict instead of the raw table. For dict results, we prefer
+    the DataFrame that looks like the actual feature table (contains symbol/date
+    columns), not metadata tables such as removal_log or symbol_stats.
+    """
+    print(f"{context}: TYPE: {type(obj)}")
+    if isinstance(obj, pd.DataFrame):
+        features = obj
+    elif isinstance(obj, dict):
+        print(f"{context}: KEYS: {list(obj.keys())}")
+        candidates = []
+        preferred_order = ["features", "data", "df", "output", "table", "frame"]
+        for key in preferred_order:
+            if key in obj and isinstance(obj[key], pd.DataFrame):
+                candidates.append((key, obj[key]))
+        for key, value in obj.items():
+            if isinstance(value, pd.DataFrame) and (key not in preferred_order):
+                candidates.append((key, value))
+
+        features = None
+        for key, candidate in candidates:
+            if candidate.empty:
+                continue
+            required_columns = ["symbol", "date"]
+            missing = [c for c in required_columns if c not in candidate.columns]
+            if not missing:
+                features = candidate
+                print(f"{context}: Using dataframe from key={key}")
+                break
+
+        if features is None:
+            raise TypeError(
+                f"{context}: No DataFrame found in returned dictionary with required columns. "
+                f"Keys={list(obj.keys())}"
+            )
+    else:
+        raise TypeError(f"{context}: Expected DataFrame or dict, got {type(obj)}")
+
+    if features.empty:
+        raise ValueError(f"{context}: Feature dataframe is empty.")
+
+    required_columns = ["symbol", "date"]
+    missing = [c for c in required_columns if c not in features.columns]
+    if missing:
+        raise ValueError(f"{context}: Missing columns: {missing}")
+
+    print(f"{context}: Feature shape: {features.shape}")
+    return features
+
+
+def extract_feature_dataframe(result: object, context: str = "feature build") -> pd.DataFrame:
+    """Compatibility wrapper for older call sites."""
+    return ensure_dataframe(result, context=context)
+
+
 def build_full_dataset(
     ohlcv_path: str,
     output_path: str = "data/processed/nifty100_features",
@@ -704,7 +762,11 @@ def build_full_dataset(
     }
     schema_path.write_text(json.dumps(schema_json, indent=2), encoding="utf-8")
 
-    return {
+    result = {
+        "features": combined,
+        "data": combined,
+        "df": combined,
+        "output": combined,
         "row_count": len(combined),
         "symbol_count": combined["symbol"].nunique(),
         "feature_count": len(feature_cols_all),
@@ -714,6 +776,7 @@ def build_full_dataset(
         "symbol_stats": symbol_stats,
         "feature_schema": feature_schema,
     }
+    return result
 
 
 def _get_feature_description(name: str) -> str:

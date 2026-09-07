@@ -1,0 +1,13 @@
+[render-build] python:  Python 3.12.3
+[render-build] pip:     
+[render-build] cwd:     /mnt/c/Users/r_chh/OneDrive/Apps/Guarvi1
+[render-build] OK  data/processed/nifty100_ohlcv.parquet (4.9M)
+[render-build] OK  reports/live_signal.json (16K)
+[render-build] OK  web/static/index.html (44K)
+[render-build] OK  data/processed/nifty100_features.parquet (143M)
+[render-build] Pre-computing scores for runtime...
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+  File "/mnt/c/Users/r_chh/OneDrive/Apps/Guarvi1/src/market_ml/scoring.py", line 30, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'

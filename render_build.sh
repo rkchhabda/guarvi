@@ -39,19 +39,9 @@ fi
 # This avoids the 90s runtime rebuild that causes 502s on free tier
 if [ -f "data/processed/nifty100_ohlcv.parquet" ] && [ ! -f "data/processed/nifty100_features.parquet" ]; then
     echo "[render-build] Building nifty100_features.parquet from OHLCV..."
-    "$PYTHON_BIN" -c "
-import sys
-sys.path.insert(0, '.')
-from src.market_ml.feature_engineering import build_full_dataset
-from pathlib import Path
-OHLCV_PATH = Path('data/processed/nifty100_ohlcv.parquet')
-FEATURES_PATH = Path('data/processed/nifty100_features.parquet')
-print('Building features from OHLCV...')
-df = build_full_dataset(OHLCV_PATH)
-FEATURES_PATH.parent.mkdir(parents=True, exist_ok=True)
-df.to_parquet(FEATURES_PATH, index=False)
-print(f'Built {FEATURES_PATH} with shape {df.shape}')
-"
+    echo "[render-build] Running scripts/build_features.py..."
+    "$PYTHON_BIN" scripts/build_features.py
+
     echo "[render-build] Features parquet built successfully"
 elif [ -f "data/processed/nifty100_features.parquet" ]; then
     echo "[render-build] OK  data/processed/nifty100_features.parquet ($(du -h data/processed/nifty100_features.parquet | cut -f1))"

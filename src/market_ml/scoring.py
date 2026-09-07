@@ -635,9 +635,11 @@ def _maybe_rebuild_features_from_ohlcv() -> bool:
     if not OHLCV_PATH.exists():
         return False
     try:
-        from .feature_engineering import build_full_dataset  # type: ignore
+        from .feature_engineering import build_full_dataset, ensure_dataframe  # type: ignore
         FEATURES_PATH.parent.mkdir(parents=True, exist_ok=True)
-        build_full_dataset(str(OHLCV_PATH), str(FEATURES_PATH))
+        result = build_full_dataset(str(OHLCV_PATH), str(FEATURES_PATH))
+        features = ensure_dataframe(result, context='_maybe_rebuild_features_from_ohlcv')
+        print(f"_maybe_rebuild_features_from_ohlcv: Feature shape: {features.shape}")
         return FEATURES_PATH.exists()
     except Exception as exc:  # noqa: BLE001
         import logging
