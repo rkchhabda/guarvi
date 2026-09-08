@@ -13,6 +13,7 @@ import json
 import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI
@@ -46,6 +47,18 @@ def _scoring_module():
     """Lazy import to keep cold-start cheap."""
     from src.market_ml import scoring
     return scoring
+
+
+def _load_precomputed_scores():
+    """Load pre-computed scores from JSON cache if available."""
+    cache_path = ROOT / "reports" / "precomputed_scores.json"
+    if cache_path.exists():
+        try:
+            import json
+            return json.loads(cache_path.read_text())
+        except Exception:
+            pass
+    return None
 
 
 def _load_signal() -> dict:
@@ -798,6 +811,20 @@ def api_v1_now(tier: str | None = None):
 def api_v1_scores_all(tier: str | None = None, limit: int = 0):
     """All score cards (one per symbol) plus sector summary and headline stats."""
     t = _resolve_tier(tier)
+    # Try precomputed cache first (fast, no ML deps at runtime)
+    cached = _load_precomputed_scores()
+    if cached:
+        scores = cached.get("scores", [])
+        if limit and limit > 0:
+            scores = scores[:limit]
+        return _wrap_v1({
+            "as_of": cached.get("as_of"),
+            "summary": cached.get("summary", {}),
+            "sector_summary": cached.get("sector_summary", {}),
+            "scores": scores,
+            "count": len(scores),
+        }, t)
+    # Fallback: compute at runtime (requires ML deps)
     scoring = _scoring_module()
     try:
         result = scoring.compute_all_scores()
@@ -819,6 +846,18 @@ def api_v1_scores_all(tier: str | None = None, limit: int = 0):
 def api_v1_scores_symbol(symbol: str, tier: str | None = None):
     """Score card for a single symbol with all 6 factor scores + 14 KPIs."""
     t = _resolve_tier(tier)
+    sym = symbol.strip().upper()
+    # Try precomputed cache first
+    cached = _load_precomputed_scores()
+    if cached:
+        for card in cached.get("scores", []):
+            if card.get("symbol", "").upper() == sym:
+                return _wrap_v1(card, t)
+        return JSONResponse(
+            status_code=404,
+            content=_wrap_v1({"error": f"symbol not found in precomputed scores: {symbol}"}, t),
+        )
+    # Fallback: compute at runtime
     scoring = _scoring_module()
     try:
         card = scoring.score_for_symbol(symbol)
@@ -840,12 +879,92 @@ def api_v1_screener(direction: str = "ALL", limit: int = 10, tier: str | None = 
     holding period, action.
     """
     t = _resolve_tier(tier)
-    scoring = _scoring_module()
-    try:
-        result = scoring.compute_all_scores()
-    except Exception as e:
-        return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
-    cards = result.get("scores", [])
+    # Try precomputed cache first
+    cached = _load_precomputed_scores()
+    if cached:
+        cards = cached.get("scores", [])
+    else:
+        # Fallback: compute at runtime
+        scoring = _scoring_module()
+        try:
+            result = scoring.compute_all_scores()
+            cards = result.get("scores", [])
+        except Exception as e:
+            return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
+    if direction.upper() == "UP":
+        cards = [c for c in cards if (c.get("prob_up") or 0) > 0.5]
+    elif direction.upper() == "DOWN":
+        cards = [c for c in cards if (c.get("prob_up") or 0) < 0.5]
+    cards = cards[:max(1, limit)] if limit else cards[:10]
+
+    rows = []
+    for i, c in enumerate(cards, start=1):
+        prob = c.get("prob_up") or 0.5
+        scores = c["scores"]
+        overall = scores["overall"]
+        # Map overall to action label
+        if overall >= 75 and prob >= 0.55:
+            action = "STRONG BUY"
+            signal = "UP"
+        elif overall >= 60 and prob >= 0.52:
+            action = "BUY"
+            signal = "UP"
+        elif overall >= 45 and prob >= 0.48:
+            action = "HOLD"
+            signal = "NEUTRAL"
+        elif overall <= 30 and prob <= 0.45:
+            action = "STRONG SELL"
+            signal = "DOWN"
+        else:
+            action = "SELL"
+            signal = "DOWN"
+        # Risk:Reward from trade plan
+        tp = c["trade_plan"]
+        entry = tp["entry_price"]
+        sl = tp["stop_loss"]
+        t1 = tp["target_1"]
+        t2 = tp["target_2"]
+        rr = None
+        if entry and sl and t1:
+            risk_per_unit = (entry - sl) if (entry - sl) > 0 else None
+            reward_per_unit = (t1 - entry) if (t1 - entry) > 0 else None
+            if risk_per_unit and reward_per_unit and risk_per_unit > 0:
+                rr = round(reward_per_unit / risk_per_unit, 2)
+        expected_upside = c["kpis"].get("expected_return_pct")
+        rows.append({
+            "rank": i,
+            "symbol": c["symbol"],
+            "sector": c["sector"],
+            "cmp": c["last_close"],
+            "signal": signal,
+            "action": action,
+            "ai_score": scores["ai"],
+            "overall_score": overall,
+            "confidence_pct": c["kpis"].get("confidence_pct"),
+            "expected_upside_pct": expected_upside,
+            "downside_risk_pct": c["kpis"].get("downside_risk_pct"),
+            "risk_reward": rr,
+            "risk_level": tp["risk_level"],
+            "entry": entry,
+            "stop_loss": sl,
+            "target_1": t1,
+            "target_2": t2,
+            "holding_period": tp["holding_period"],
+            "win_probability_pct": c["kpis"].get("win_probability_pct"),
+            "trend_strength": c["kpis"]["trend_strength"],
+            "liquidity_score": c["kpis"]["liquidity_score"],
+            "as_of": c["as_of"],
+        })
+    as_of = cached.get("as_of") if cached else result.get("as_of") if 'result' in dir() else None
+    summary = cached.get("summary", {}) if cached else (result.get("summary", {}) if 'result' in dir() else {})
+    return _wrap_v1({
+        "as_of": as_of,
+        "direction": direction.upper(),
+        "limit": limit,
+        "summary": summary,
+        "rows": rows,
+        "count": len(rows),
+    }, t)
     if direction.upper() == "UP":
         cards = [c for c in cards if (c.get("prob_up") or 0) > 0.5]
     elif direction.upper() == "DOWN":
@@ -927,12 +1046,19 @@ def api_v1_market(tier: str | None = None):
     sector heatmap, market sentiment, advance/decline.
     """
     t = _resolve_tier(tier)
-    scoring = _scoring_module()
-    try:
-        scores_payload = scoring.compute_all_scores()
-    except Exception as e:
-        return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
-    cards = scores_payload.get("scores", [])
+    # Try precomputed cache first
+    cached = _load_precomputed_scores()
+    if cached:
+        cards = cached.get("scores", [])
+        scores_payload = cached
+    else:
+        # Fallback: compute at runtime
+        scoring = _scoring_module()
+        try:
+            scores_payload = scoring.compute_all_scores()
+        except Exception as e:
+            return JSONResponse(status_code=500, content=_wrap_v1({"error": f"scoring failed: {e}"}, t))
+        cards = scores_payload.get("scores", [])
     nifty50 = api_nifty50()
     sig = _load_signal()
     breadth_prob = sig.get("market_breadth_prob") or 0.5
@@ -1013,16 +1139,23 @@ def api_v1_kpis(tier: str | None = None):
     disclose the source).
     """
     t = _resolve_tier(tier)
-    scoring = _scoring_module()
     sig = _load_signal()
     perf = api_performance()
     summary = perf.get("summary", {}) if isinstance(perf, dict) else {}
-    try:
-        scores_payload = scoring.compute_all_scores()
-        cards = scores_payload.get("scores", [])
-    except Exception:
-        cards = []
-        scores_payload = {"summary": {}}
+    # Try precomputed cache first
+    cached = _load_precomputed_scores()
+    if cached:
+        cards = cached.get("scores", [])
+        scores_payload = cached
+    else:
+        # Fallback: compute at runtime
+        scoring = _scoring_module()
+        try:
+            scores_payload = scoring.compute_all_scores()
+            cards = scores_payload.get("scores", [])
+        except Exception:
+            cards = []
+            scores_payload = {"summary": {}}
 
     # Stocks scanned today = total symbols in screen
     stocks_scanned = len(cards)
@@ -1055,13 +1188,29 @@ def api_v1_reasoning(symbol: str, tier: str | None = None):
     so the dashboard can show 'why' (not just 'what') the model recommended.
     """
     t = _resolve_tier(tier)
-    scoring = _scoring_module()
-    card = scoring.score_for_symbol(symbol)
-    if card is None:
-        return JSONResponse(
-            status_code=404,
-            content=_wrap_v1({"error": f"symbol not found: {symbol}"}, t),
-        )
+    sym = symbol.strip().upper()
+    # Try precomputed cache first
+    cached = _load_precomputed_scores()
+    if cached:
+        card = None
+        for c in cached.get("scores", []):
+            if c.get("symbol", "").upper() == sym:
+                card = c
+                break
+        if card is None:
+            return JSONResponse(
+                status_code=404,
+                content=_wrap_v1({"error": f"symbol not found: {symbol}"}, t),
+            )
+    else:
+        # Fallback: compute at runtime
+        scoring = _scoring_module()
+        card = scoring.score_for_symbol(symbol)
+        if card is None:
+            return JSONResponse(
+                status_code=404,
+                content=_wrap_v1({"error": f"symbol not found: {symbol}"}, t),
+            )
     scores = card["scores"]
     k = card["kpis"]
     bullets = []
@@ -1153,9 +1302,22 @@ def get_technicals(symbol: str, tier: Optional[str] = None):
     Returns EMA 20/50/200, RSI, MACD, ADX, ATR, Bollinger, 52w high/low,
     support/resistance, breakout status, volume surge, relative-strength
     rank, and a fundamentals block (mostly null today, with a clear note).
+
+    Note: This endpoint requires ML dependencies (xgboost, lightgbm, scikit-learn).
+    On Render free tier, these are not installed. Pre-compute locally if needed.
     """
     t = _resolve_tier(tier)
-    scoring = _scoring_module()
+    # Try to import scoring module (requires ML deps)
+    try:
+        scoring = _scoring_module()
+    except ModuleNotFoundError as e:
+        return JSONResponse(
+            status_code=503,
+            content=_wrap_v1({
+                "error": f"Technical analysis requires ML dependencies not available in this deployment. "
+                         f"Missing: {e.name}. Run locally with full requirements.txt to generate."
+            }, t),
+        )
     snap = scoring.technicals_for_symbol(symbol)
     if snap is None:
         return JSONResponse(

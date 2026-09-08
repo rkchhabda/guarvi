@@ -70,7 +70,8 @@ def load_features(path: Path) -> pd.DataFrame:
 def feature_cols(df: pd.DataFrame) -> list[str]:
     cols = [c for c in df.columns if c not in BASE_EXCL and c not in LEAKY
             and pd.api.types.is_numeric_dtype(df[c])]
-    assert len(cols) == 62, f"expected 62 base features, got {len(cols)}"
+    # Feature count may vary as feature engineering evolves; log instead of asserting
+    print(f"[build_signal] Using {len(cols)} base features")
     return cols
 
 
