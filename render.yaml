@@ -1,5 +1,4 @@
-# Render Blueprint — Guarvi Signal Portal (read-only FastAPI dashboard)
-services:
+ervices:
   - type: web
     name: guarvi-portal
     runtime: python
@@ -7,7 +6,7 @@ services:
     region: oregon
     branch: main
     autoDeploy: true
-    buildCommand: "pip install --upgrade pip && pip install --only-binary=:all: pydantic-core==2.24.1 pydantic==2.9.2 fastapi==0.115.6 uvicorn starlette typing-extensions annotated-types"
+    buildCommand: "pip install --upgrade pip && pip install --only-binary=:all: -r requirements-render.txt"
     startCommand: "uvicorn web.main:app --host 0.0.0.0 --port $PORT --workers 1"
     healthCheckPath: "/api/now"
     envVars:
