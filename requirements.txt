@@ -1,15 +1,12 @@
-pandas>=2.0
-numpy>=1.26
-scikit-learn>=1.4
-xgboost>=2.0
-lightgbm>=4.0
-pytest>=8.0
-jugaad-data>=0.24
-pyarrow>=14.0
-growwapi>=1.0
-python-dotenv>=1.0
-pyyaml>=6.0
-# Web portal (Phase A)
-fastapi>=0.110
-uvicorn>=0.29
-pydantic>=2.6
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.9.2
+pydantic-core==2.23.1
+pandas==2.2.3
+numpy==1.26.4
+pyarrow==18.1.0
+python-dotenv==1.0.1
+pyyaml==6.0.2
+starlette==0.41.3
+typing-extensions==4.12.2
+annotated-types==0.7.0
