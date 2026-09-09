@@ -17,12 +17,12 @@ services:
     region: oregon          # Closest free region to India; Singapore is paid-only.
     branch: main
     autoDeploy: true
-    buildCommand: "python -m pip install --upgrade pip && python -m pip install -r requirements-render.txt && bash render_build.sh"
+    buildCommand: "python -m pip install --upgrade pip && python -m pip install --only-binary=:all: -r requirements-render.txt"
     startCommand: "uvicorn web.main:app --host 0.0.0.0 --port $PORT --workers 1"
     healthCheckPath: "/api/now"
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11"     # 3.11 has best manylinux wheel coverage for pydantic-core
+        value: "3.11"         # Python 3.11 has full wheel support for pydantic-core
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: WEB_CONCURRENCY
@@ -31,8 +31,6 @@ services:
         value: "./data"
       - key: GUARVI_REPORTS_DIR
         value: "./reports"
-      - key: CARGO_HOME
-        value: "/opt/render/project/src/.cargo"  # Fallback if any Rust build is triggered
     # Disk is intentionally NOT mounted: free-tier disks are paid. The
     # dashboard reads only the parquet + JSON bundled in the repo image.
     # If you need to write live data, upgrade to Starter and add a `disk`
