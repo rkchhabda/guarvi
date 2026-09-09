@@ -4,6 +4,7 @@ set -e
 export CARGO_NET_OFFLINE=false
 export CARGO_HOME=/tmp/cargo
 export PIP_NO_CACHE_DIR=1
+export PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 
 mkdir -p /tmp/cargo /tmp/target
 
