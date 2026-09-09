@@ -1,17 +1,15 @@
 services:
   - type: web
     name: guarvi-portal
-    runtime: python
+    runtime: docker  # Changed from 'python' to 'docker'
     plan: free
     region: oregon
     branch: main
     autoDeploy: true
-    buildCommand: "pip install --upgrade pip && pip install --only-binary=:all: -r requirements-render.txt"
-    startCommand: "uvicorn web.main:app --host 0.0.0.0 --port $PORT --workers 1"
+    # No buildCommand needed for Docker; it runs the Dockerfile automatically
+    startCommand: "" 
     healthCheckPath: "/api/now"
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.11"
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: WEB_CONCURRENCY
