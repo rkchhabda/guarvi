@@ -1,13 +1,13 @@
 services:
   - type: web
     name: guarvi-portal
-    runtime: docker  # Changed from 'python' to 'docker'
+    runtime: docker
     plan: free
     region: oregon
     branch: main
     autoDeploy: true
-    # No buildCommand needed for Docker; it runs the Dockerfile automatically
-    startCommand: "" 
+    # No buildCommand needed for Docker; Render runs the Dockerfile automatically
+    startCommand: ""
     healthCheckPath: "/api/now"
     envVars:
       - key: PYTHONUNBUFFERED
