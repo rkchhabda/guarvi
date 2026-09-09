@@ -1,0 +1,6 @@
+[build]
+jobs = 1
+
+[net]
+retry = 1
+offline = false
