@@ -6,8 +6,6 @@ services:
     region: oregon
     branch: main
     autoDeploy: true
-    # No buildCommand needed for Docker; Render runs the Dockerfile automatically
-    startCommand: ""
     healthCheckPath: "/api/now"
     envVars:
       - key: PYTHONUNBUFFERED
