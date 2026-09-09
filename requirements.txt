@@ -1,12 +1,11 @@
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
-pydantic==2.9.2
-pydantic-core==2.23.1
+pydantic>=2.9.2,<3.0.0
 pandas==2.2.3
 numpy==1.26.4
 pyarrow==18.1.0
 python-dotenv==1.0.1
 pyyaml==6.0.2
 starlette==0.41.3
-typing-extensions==4.12.2
-annotated-types==0.7.0
+typing-extensions>=4.8.0
+annotated-types>=0.6.0
