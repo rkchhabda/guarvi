@@ -3,7 +3,6 @@ set -e
 
 export CARGO_NET_OFFLINE=false
 export CARGO_HOME=/tmp/cargo
-export RUSTFLAGS="-C target-dir=/tmp/target"
 export PIP_NO_CACHE_DIR=1
 
 mkdir -p /tmp/cargo /tmp/target
