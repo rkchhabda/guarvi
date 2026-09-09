@@ -22,7 +22,7 @@ services:
     healthCheckPath: "/api/now"
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.9"     # 3.11 has best manylinux wheel coverage for pydantic-core
+        value: "3.11"     # 3.11 has best manylinux wheel coverage for pydantic-core
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: WEB_CONCURRENCY
