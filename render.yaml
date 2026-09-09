@@ -22,7 +22,7 @@ services:
     healthCheckPath: "/api/now"
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12.8"     # 3.14 has no prebuilt manylinux wheels on Render yet.
+        value: "3.11.9"     # 3.11 has best manylinux wheel coverage for pydantic-core
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: WEB_CONCURRENCY
@@ -31,6 +31,8 @@ services:
         value: "./data"
       - key: GUARVI_REPORTS_DIR
         value: "./reports"
+      - key: CARGO_HOME
+        value: "/opt/render/project/src/.cargo"  # Fallback if any Rust build is triggered
     # Disk is intentionally NOT mounted: free-tier disks are paid. The
     # dashboard reads only the parquet + JSON bundled in the repo image.
     # If you need to write live data, upgrade to Starter and add a `disk`
