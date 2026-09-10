@@ -9,13 +9,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip setuptools wheel
 
 # Copy requirements first for caching
 COPY requirements.txt .
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# CRITICAL: Force ONLY binary wheels - NO SOURCE COMPILATION
+RUN pip install --no-cache-dir --only-binary=:all: -r requirements.txt
 
 # Copy the rest of the application
 COPY . .
